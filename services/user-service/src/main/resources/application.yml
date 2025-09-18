@@ -1,0 +1,38 @@
+server:
+  port: 8085 # 서버 포트
+spring:
+  application:
+    name: user-service # 서비스 이름
+  h2:
+    console:
+      enabled: true # h2 console 활성화 (localhost:8085/h2-console) 으로 접속
+      settings:
+        web-allow-others: true
+      path: /h2-console
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1; # 인메모리 DB. 애플리케이션 종료 시 삭제
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+  security:
+    user:
+      name: user # 기본 인증 계정 아이디
+      password: $2a$10$r/iDbnuc/7ox3wxXtQ3ohOyOyptPgjh..WTM3q0v07E2pWZFPDTcW # 기본 인증 계정 비밀번호 (실제 서비스 사용 x)
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    com.example.userservice.client: DEBUG
+
+greeting:
+  message: Welcome (spring boot)
+
+token:
+  secret: my-very-long-secret-key-1234567890123456 # jwt 서명에 사용되는 key
+  expiration-time: 86400000 # 10 days
+
