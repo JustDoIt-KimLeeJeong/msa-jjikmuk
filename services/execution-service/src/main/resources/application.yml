@@ -1,3 +1,25 @@
 spring:
   application:
     name: execution-service
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+
+    # Consumer (JSON)
+    consumer:
+      group-id: execution-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        # JsonDeserializer에 추가 옵션 전달
+        spring.json.trusted.packages: "*"          # 안전한 패키지 한정 (개발 단계는 * 가능)
+        spring.json.value.default.type: com.example.OrderEvent # 타입 헤더 없을 때 기본 타입
+        spring.json.use.type.headers: true         # 타입 헤더 사용(멀티 DTO 시 유용)
+
+    # Producer (JSON)
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false   # 타입 헤더 첨부(컨슈머 자동 매핑 도움)
