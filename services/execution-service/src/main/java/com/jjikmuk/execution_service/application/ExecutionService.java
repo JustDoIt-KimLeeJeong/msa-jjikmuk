@@ -1,10 +1,9 @@
 package com.jjikmuk.execution_service.application;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import com.jjikmuk.execution_service.domain.event.DomainEvent;
 
-@Service
-@RequiredArgsConstructor
-public class ExecutionService {
+public interface ExecutionService {
+    void onOrderAccepted(DomainEvent evt);
+    void onOrderCancelled(DomainEvent evt);
 
 }
