@@ -1,0 +1,14 @@
+spring:
+  kafka:
+    bootstrap-servers: # 테스트 시에는 Kafka 연결을 시도하지 않도록 비워둠
+  datasource:
+    url: jdbc:h2:mem:testdb # 인메모리 H2 데이터베이스를 사용
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop # 테스트 시작 시 스키마를 생성하고, 종료 시 삭제
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect # H2 DB 방언 사용
