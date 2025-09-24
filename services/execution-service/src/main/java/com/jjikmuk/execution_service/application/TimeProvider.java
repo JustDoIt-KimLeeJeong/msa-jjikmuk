@@ -3,7 +3,10 @@ package com.jjikmuk.execution_service.application;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+
 @Component
 public class TimeProvider {
-    public Instant now() { return Instant.now(); }
+    public Instant now() {
+        return Instant.now();
+    }
 }

@@ -1,4 +1,7 @@
 package com.jjikmuk.execution_service.infrastructure.persistence.repository;
 
-public class FillJpaRepository {
+import com.jjikmuk.execution_service.infrastructure.persistence.entity.FillEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface FillJpaRepository extends JpaRepository<FillEntity, Long> {
 }

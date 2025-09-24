@@ -23,7 +23,7 @@ public class ExecutionEventsProducer {
         DomainEvent evt = DomainEvent.builder()
                 .eventId(UUID.randomUUID().toString())
                 .eventType("TradeExecuted")
-                .aggregateId(payload.getOrderId())
+                .aggregateId(payload.orderId())
                 .timestamp(Instant.now())
                 .data(objectMapper.valueToTree(payload)) // data -> JsonNode
                 .build();
