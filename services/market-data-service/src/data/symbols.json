@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "updatedAt": "2025-09-24T06:30:00Z",
+  "rules": {
+    "maxSymbols": 30,
+    "defaultWatchlist": ["005930","000660","035420","035720","068270"],
+    "intervals": ["1m","1d","1w"],
+    "defaultQuoteLevel": 1
+  },
+  "symbols": [
+    {
+      "symbol": "005930",
+      "name": "삼성전자",
+      "market": "KOSPI",
+      "isin": "KR7005930003",
+      "currency": "KRW",
+      "tickSize": 100,
+      "priceLimitPct": 30,
+      "lotSize": 1,
+      "displayPrecision": 0,
+      "active": true
+    },
+    {
+      "symbol": "000660",
+      "name": "SK하이닉스",
+      "market": "KOSPI",
+      "isin": "KR7000660001",
+      "currency": "KRW",
+      "tickSize": 100,
+      "priceLimitPct": 30,
+      "lotSize": 1,
+      "displayPrecision": 0,
+      "active": true
+    }
+  ]
+}
