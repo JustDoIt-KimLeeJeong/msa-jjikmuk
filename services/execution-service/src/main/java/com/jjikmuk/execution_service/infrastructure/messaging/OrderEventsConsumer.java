@@ -14,11 +14,9 @@ public class OrderEventsConsumer {
 
     private final ExecutionService executionService;
 
-    @KafkaListener(
-            topics = "order-events",
-            groupId = "execution-service",
-            concurrency = "30", // 파티션 수와 맞추면 1:1 매핑. - maximum 30.
-            containerFactory = "kafkaListenerContainerFactory"
+        @KafkaListener(
+            topics = "${spring.kafka.topic.order-events}",
+            containerFactory = "domainEventKafkaListenerContainerFactory"
     )
     public void listen(DomainEvent evt)
 //                       @Header(name = "kafka_receivePartitionId",required = false) Integer p, // 파티션 번호

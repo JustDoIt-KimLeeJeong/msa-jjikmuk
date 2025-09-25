@@ -1,6 +1,9 @@
 spring:
   kafka:
     bootstrap-servers: # 테스트 시에는 Kafka 연결을 시도하지 않도록 비워둠
+    topic: # Test Kafka Topic Definitions
+      order-events: test-order-events
+      market-data-ticks: test-market-data-ticks
   datasource:
     url: jdbc:h2:mem:testdb # 인메모리 H2 데이터베이스를 사용
     driver-class-name: org.h2.Driver
