@@ -74,10 +74,10 @@ int run_server(void){
 
 
 
-int main(){
+// int main(){
     
 
-    router_register(); // 라우터 등록 후 시작
-    run_server();
+//     router_register(); // 라우터 등록 후 시작
+//     run_server();
     
-}
+// }
