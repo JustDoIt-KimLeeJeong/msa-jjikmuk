@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/order_db}
+    username: ${DB_USERNAME:order_user}
+    password: ${DB_PASSWORD:order_pass}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 10
+
+  jpa:
+    hibernate:
+      ddl-auto: validate  # 운영에서는 validate만 사용
+    show-sql: false
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+
+# 운영 환경 로깅
+logging:
+  level:
+    root: WARN
+    com.tradingsystem.order: INFO
+    org.hibernate: WARN
+    org.springframework.kafka: WARN
+  file:
+    path: /var/log/order-service  # 운영 로그 경로
