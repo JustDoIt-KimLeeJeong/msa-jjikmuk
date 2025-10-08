@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "order_trades",
         indexes = {
-            @Index(name = "idx_order_id", columnList = "order_id"),
+            @Index(name = "idx_order_id", columnList = "orderId"),
             @Index(name = "idx_trade_id", columnList = "tradeId", unique = true)
         })
 @Getter
@@ -28,13 +28,13 @@ public class OrderTrade {
     @Column(nullable = false)
     private Long orderId;
 
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(nullable = false, length = 100)
     private String tradeId; // Execution에서 받은 체결 ID (멱등성 보장)
 
     @Column(nullable = false, length = 20)
     private String symbol;
 
-    @Column(unique = false, precision = 19, scale = 4)
+    @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal executedPrice;
 
     @Column(nullable = false)

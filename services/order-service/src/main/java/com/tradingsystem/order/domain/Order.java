@@ -145,22 +145,24 @@ public class Order {
 
     /**
      * 주문 만료 여부 확인
+     * @param checkTime  만료 여부를 확인하려는 기준 시간
      */
-    public boolean isExpired() {
+    public boolean isExpired(LocalDateTime checkTime) {
         // 시장가 주문은 만료 시간이 없습니다.
         if (this.type == OrderType.MARKET) {
             return false;
         }
 
-        // 만료 시간이 설정되어 있고, 현재 시간이 만료 시간을 지났다면 true
-        return expiresAt != null && LocalDateTime.now().isAfter(expiresAt);
+        // 만료 시간이 설정되어 있고, 기준 시간이 만료 시간을 지났다면 true
+        return expiresAt != null && checkTime.isAfter(expiresAt);
     }
 
     /**
      * 주문이 현재 체결 가능 상태(Active)인지 확인
      * (PENDING 또는 PARTIALLY_FILLED 상태이며, 만료되지 않음)
+     * @param checkTime 체결 가능 여부를 확인하려는 기준 시간
      */
-    public boolean isTradable() {
+    public boolean isTradable(LocalDateTime checkTime) {
         // 1. 상태가 체결 가능한 상태인지 확인
         boolean isActiveStatus = this.status == OrderStatus.PENDING || this.status == OrderStatus.PARTIALLY_FILLED;
 
@@ -169,7 +171,7 @@ public class Order {
         }
 
         // 2. 지정가 주문인 경우 만료 여부 확인
-        if (this.isLimitOrder() && this.isExpired()) {
+        if (this.isLimitOrder() && this.isExpired(checkTime)) {
             return false;
         }
 
