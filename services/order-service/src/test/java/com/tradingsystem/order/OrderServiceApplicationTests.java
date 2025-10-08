@@ -1,4 +1,4 @@
-package com.jjikmuk.order;
+package com.tradingsystem.order;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
