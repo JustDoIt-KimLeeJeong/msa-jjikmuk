@@ -37,7 +37,7 @@ public class OutboxEvent {
 
     @Column(nullable = false)
     @Builder.Default
-    private Boolean published = false;
+    private boolean published = false;
 
     @CreatedDate
     @Column(nullable = false, updatable = false)

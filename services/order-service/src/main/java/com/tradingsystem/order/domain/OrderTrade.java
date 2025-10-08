@@ -28,7 +28,7 @@ public class OrderTrade {
     @Column(nullable = false)
     private Long orderId;
 
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(nullable = false, length = 100)
     private String tradeId; // Execution에서 받은 체결 ID (멱등성 보장)
 
     @Column(nullable = false, length = 20)
