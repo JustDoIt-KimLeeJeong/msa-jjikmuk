@@ -23,7 +23,7 @@ public class OutboxEvent {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 50)
+    @Column(nullable = false, length = 50)
     private String eventId; // UUID(멱등성 보장)
 
     @Column(nullable = false, length = 50)
