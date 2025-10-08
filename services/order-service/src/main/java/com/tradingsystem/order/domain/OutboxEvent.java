@@ -11,6 +11,9 @@ import java.time.LocalDateTime;
 @Table(name = "outbox_events",
         indexes = {
             @Index(name = "idx_published_created_at", columnList = "published, createdAt")
+        },
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_event_id", columnNames = {"eventId"})
         })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
