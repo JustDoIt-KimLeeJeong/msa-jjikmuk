@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "order_trades",
         indexes = {
-            @Index(name = "idx_order_id", columnList = "order_id"),
+            @Index(name = "idx_order_id", columnList = "orderId"),
             @Index(name = "idx_trade_id", columnList = "tradeId", unique = true)
         })
 @Getter
