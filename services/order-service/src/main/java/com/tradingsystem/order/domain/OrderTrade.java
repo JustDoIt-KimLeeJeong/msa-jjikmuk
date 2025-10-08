@@ -34,7 +34,7 @@ public class OrderTrade {
     @Column(nullable = false, length = 20)
     private String symbol;
 
-    @Column(unique = false, precision = 19, scale = 4)
+    @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal executedPrice;
 
     @Column(nullable = false)
