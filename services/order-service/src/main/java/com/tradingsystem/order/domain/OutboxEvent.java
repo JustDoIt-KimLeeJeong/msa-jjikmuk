@@ -48,10 +48,11 @@ public class OutboxEvent {
     // === 비즈니스 메서드 ===
     /**
      * 이벤트 발행 완료 처리
+     *  @param publishedTime 이벤트가 실제로 발행 완료된 시간
      */
-    public void markAsPublished() {
+    public void markAsPublished(LocalDateTime publishedTime) {
         this.published =true;
-        this.publishedAt = LocalDateTime.now();
+        this.publishedAt = publishedTime;
     }
 
     /**
