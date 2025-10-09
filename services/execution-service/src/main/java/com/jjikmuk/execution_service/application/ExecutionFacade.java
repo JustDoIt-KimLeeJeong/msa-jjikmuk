@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -39,13 +40,15 @@ public class ExecutionFacade {
     @Transactional
     public void handleOrderAccepted(DomainEvent event) {
         OrderAccepted payload = (OrderAccepted) event.getData();
+
         Instant now = timeProvider.now();
+        log.info("[OrderAccepted] eventId={} symbol={} side={} qty={}",
+                event.getEventId(), payload.symbol(), payload.side(), payload.quantity());
 
         // 1. Mapper를 사용해 이벤트 페이로드로부터 도메인 모델(Order) 생성
         long arrivalSeq = symbolSeqPort.nextArrivalSeq(new Symbol(payload.symbol()));   // arrivalSeq 발급. - 시간 우선 보장
         Order incomingOrder = orderMapper.toDomain(payload, arrivalSeq, now);           // Order 객체 생성
-
-        // TODO: 멱등성 체크 (이미 처리된 eventId인지 확인)
+        log.debug("[OrderAccepted] Mapped incomingOrder={}", incomingOrder);
 
         // 2. 체결 로직: 주문 잔량이 있고, 체결 조건이 맞으면 계속해서 오더북의 반대 주문과 매칭 시도
         while (incomingOrder.getLeavesQty() > 0) {
@@ -54,6 +57,7 @@ public class ExecutionFacade {
 
             // 2.2. 반대 주문이 없거나 가격이 맞지 않으면 매칭 중단
             if (bestOppositeOpt.isEmpty() || !incomingOrder.crosses(bestOppositeOpt.get().getPrice())) {
+                log.info("[Matching] No opposite order found. Stop matching. orderId={}", incomingOrder.getOrderId());
                 break;
             }
 
@@ -70,9 +74,9 @@ public class ExecutionFacade {
                 executionRepository.upsertTradeAndAppendFills(openOrder.getOrderId(), openOrder.getSide(), openOrder.getSymbol(), List.of(fill), fill.qty(), now);
 
                 // 2.5. 양쪽 주문에 대한 체결 이벤트를 각각 발행 (Outbox)
-
                 // 2.5.1. 신규 주문(Taker)에 대한 이벤트
                 TradeExecuted.OrderStatus incomingStatus = (incomingOrder.getLeavesQty() > 0) ? TradeExecuted.OrderStatus.PARTIALLY_FILLED : TradeExecuted.OrderStatus.FILLED;
+
                 TradeExecuted incomingTradeEvent = new TradeExecuted(
                     incomingOrder.getOrderId().value(),
                     incomingOrder.getSymbol().value(),
@@ -124,7 +128,6 @@ public class ExecutionFacade {
                 executionRepository.insertOpen(incomingOrder);
             }
         }
-
     }
 
     @Transactional
@@ -150,6 +153,93 @@ public class ExecutionFacade {
                 now.toString()
             );
             outboxPort.saveCancelRejected(rejected);
+        }
+    }
+
+    @Transactional
+    public void matchOrders(String symbolValue, BigDecimal bidp1, BigDecimal askp1) {
+        Symbol symbol = new Symbol(symbolValue);
+        Instant now = timeProvider.now();
+
+        // MatchingEngine에 Tick 정보를 전달하여 오더북의 주문들과 체결 시도
+        // 이 부분은 MatchingEngine에 새로운 메서드가 필요합니다.
+        // matchingEngine.processTick(symbol, bidp1, askp1, now);
+        log.info("Processing tick for symbol {} with bidp1={} and askp1={}", symbolValue, bidp1, askp1);
+        // TODO: MatchingEngine에 processTick 메서드 구현 후 호출
+    }
+
+    @Transactional
+    public void processMarketDataTick(String symbolValue, BigDecimal bidp1, BigDecimal askp1) {
+        Symbol symbol = new Symbol(symbolValue);
+        Instant now = timeProvider.now();
+
+        // MatchingEngine에 Tick 정보를 전달하여 오더북의 주문들과 체결 시도
+        List<Fill> fills = matchingEngine.processTick(symbol, bidp1, askp1, now);
+
+        for (Fill fill : fills) {
+            // Fill 처리 로직 (handleOrderAccepted에서 복사 및 Tick 기반으로 수정)
+            Optional<Order> filledOpenOrderOpt = executionRepository.findOpen(fill.orderId());
+            if (filledOpenOrderOpt.isEmpty()) {
+                log.warn("Filled order not found in repository for OrderId: {}", fill.orderId().value());
+                continue;
+            }
+            Order filledOpenOrder = filledOpenOrderOpt.get();
+
+            // MatchingEngine.processTick에서 이미 leavesQty가 업데이트된 상태로 Fill이 생성됨.
+            // 여기서는 Fill 정보를 바탕으로 Trade 및 이벤트 발행만 처리.
+
+            // 가상 주문 재구성 (Trade 및 이벤트 발행을 위해)
+            Order syntheticCounterOrder = Order.builder()
+                    .orderId(new OrderId("SYNTHETIC-COUNTER-" + filledOpenOrder.getOrderId().value() + "-" + now.toEpochMilli()))
+                    .symbol(symbol)
+                    .side(filledOpenOrder.getSide() == Order.Side.BUY ? Order.Side.SELL : Order.Side.BUY) // 반대 사이드
+                    .type(Order.Type.MARKET)
+                    .price(filledOpenOrder.getSide() == Order.Side.BUY ? askp1 : bidp1) // 체결 가격
+                    .origQty(fill.qty()) // 체결 수량만큼
+                    .leavesQty(0L) // 가상 주문은 항상 전량 체결된 것으로 간주
+                    .tif(Order.Tif.IOC)
+                    .arrivalSeq(filledOpenOrder.getArrivalSeq())
+                    .createdAt(now)
+                    .build();
+
+            // 2.4. 체결 결과(Fill)를 양쪽 주문의 거래(Trade)에 각각 반영
+            executionRepository.upsertTradeAndAppendFills(filledOpenOrder.getOrderId(), filledOpenOrder.getSide(), filledOpenOrder.getSymbol(), List.of(fill), filledOpenOrder.getLeavesQty(), now);
+            executionRepository.upsertTradeAndAppendFills(syntheticCounterOrder.getOrderId(), syntheticCounterOrder.getSide(), syntheticCounterOrder.getSymbol(), List.of(fill), syntheticCounterOrder.getLeavesQty(), now);
+
+            // 2.5. 양쪽 주문에 대한 체결 이벤트를 각각 발행 (Outbox)
+
+            // 2.5.1. 오더북 주문에 대한 이벤트
+            TradeExecuted.OrderStatus filledOrderStatus = (filledOpenOrder.getLeavesQty() > 0) ? TradeExecuted.OrderStatus.PARTIALLY_FILLED : TradeExecuted.OrderStatus.FILLED;
+            TradeExecuted filledOrderEvent = new TradeExecuted(
+                filledOpenOrder.getOrderId().value(),
+                filledOpenOrder.getSymbol().value(),
+                filledOpenOrder.getSide().name(),
+                fill.price(),
+                fill.qty(),
+                filledOpenOrder.getLeavesQty(),
+                filledOrderStatus,
+                now
+            );
+            outboxPort.saveTradeExecuted(filledOrderEvent);
+
+            // 2.5.2. 가상 주문에 대한 이벤트 (항상 FILLED)
+            TradeExecuted syntheticOrderEvent = new TradeExecuted(
+                syntheticCounterOrder.getOrderId().value(),
+                syntheticCounterOrder.getSymbol().value(),
+                syntheticCounterOrder.getSide().name(),
+                fill.price(),
+                fill.qty(),
+                0L, // 가상 주문은 잔량 0
+                TradeExecuted.OrderStatus.FILLED,
+                now
+            );
+            outboxPort.saveTradeExecuted(syntheticOrderEvent);
+
+            // 2.6. 오더북에 있던 주문이 전량 체결되었으면 오더북에서 제거
+            if (filledOpenOrder.getLeavesQty() == 0) {
+                executionRepository.removeOpen(filledOpenOrder);
+            }
+            // 가상 주문은 오더북에 없으므로 제거하지 않음.
         }
     }
 }

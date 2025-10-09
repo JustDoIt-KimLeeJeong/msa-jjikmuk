@@ -21,7 +21,7 @@ public class OrderMapper {
             .price(payload.price() == null ? null : new BigDecimal(payload.price()))
             .origQty(payload.quantity())
             .leavesQty(payload.quantity()) // 초기 잔량은 주문 수량과 동일
-            .tif(payload.tifEnum())
+            .tif(payload.tifEnum() != null ? payload.tifEnum() : Order.Tif.IOC)
             .arrivalSeq(arrivalSeq)
             .createdAt(createdAt)
             .build();

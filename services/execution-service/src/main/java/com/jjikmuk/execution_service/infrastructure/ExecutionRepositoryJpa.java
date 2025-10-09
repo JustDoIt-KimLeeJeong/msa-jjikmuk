@@ -74,6 +74,14 @@ public class ExecutionRepositoryJpa implements ExecutionRepository {
     }
 
     @Override
+    public List<Order> findAllOpenOrdersBySymbol(Symbol symbol) {
+        return orderOpenJpaRepository.findBySymbol(symbol.value())
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public void upsertTradeAndAppendFills(OrderId orderId, Order.Side side, Symbol symbol, List<Fill> fills, long leavesQty, Instant now) {
         // 1. orderId로 기존 Trade를 찾거나, 없으면 새로 생성
         TradeEntity tradeEntity = tradeJpaRepository.findByOrderId(orderId.value())

@@ -42,6 +42,11 @@ public interface ExecutionRepository {
      */
     Optional<Order> findOpen(OrderId id);
 
+    /**
+     * 특정 심볼에 대한 모든 오픈 주문을 조회한다.
+     */
+    List<Order> findAllOpenOrdersBySymbol(Symbol symbol);
+
     // -------------------- 체결 / Fill 관련 --------------------
 
     /**

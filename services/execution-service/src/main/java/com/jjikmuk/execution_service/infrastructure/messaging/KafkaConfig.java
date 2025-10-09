@@ -1,6 +1,7 @@
 package com.jjikmuk.execution_service.infrastructure.messaging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.jjikmuk.execution_service.domain.event.DomainEvent;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -10,6 +11,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 
@@ -50,26 +52,28 @@ public class KafkaConfig {
 
 
     /**
-     * DomainEvent 수신용 ConsumerFactory
-     * - Key: String
-     * - Value: DomainEvent (JsonDeserializer)
-     * - group.id: execution-service
-     * 참고:
-     * - addTrustedPackages("*") → 모든 패키지 허용 (운영에서는 특정 패키지만 허용 권장)
-     * - AUTO_OFFSET_RESET = earliest → 오프셋 없을 시 가장 처음부터 읽기
+     * ======================
+     * Consumer 설정 (DomainEvent)
+     * ======================
      */
     @Bean
     public ConsumerFactory<String, DomainEvent> domainEventConsumerFactory() {
-        JsonDeserializer<DomainEvent> jd = new JsonDeserializer<>(DomainEvent.class);
-        jd.addTrustedPackages("*"); // TODO: 운영 환경에서는 보안 위해 제한 필요
 
         return new DefaultKafkaConsumerFactory<>(
                 Map.of(
                         ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP,
                         ConsumerConfig.GROUP_ID_CONFIG, "execution-service",
-                        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
-                ),
-                new StringDeserializer(), jd
+                        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest",
+                        ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class,
+                        ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class,
+                        ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, StringDeserializer.class,
+                        ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class,
+                        JsonDeserializer.TRUSTED_PACKAGES, "com.jjikmuk.*",
+                        JsonDeserializer.USE_TYPE_INFO_HEADERS, false,
+                        JsonDeserializer.VALUE_DEFAULT_TYPE,
+                        "com.jjikmuk.execution_service.domain.event.DomainEvent"
+                )
+//                new StringDeserializer(), jd
         );
     }
 
@@ -121,7 +125,9 @@ public class KafkaConfig {
      */
     @Bean
     public ObjectMapper objectMapper() {
-        return new ObjectMapper();
+        return new ObjectMapper()
+                .registerModule(new JavaTimeModule()) // Instant, LocalDateTime 지원
+                .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
 }
