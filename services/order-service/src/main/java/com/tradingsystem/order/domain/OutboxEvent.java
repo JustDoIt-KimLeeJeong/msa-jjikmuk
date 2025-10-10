@@ -19,8 +19,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
-@EntityListeners(AuditingEntityListener.class)
-public class OutboxEvent {
+public class OutboxEvent extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -42,10 +41,6 @@ public class OutboxEvent {
     @Builder.Default
     private boolean published = false;
 
-    @CreatedDate
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
     private LocalDateTime publishedAt;
 
     // === 비즈니스 메서드 ===
@@ -54,6 +49,10 @@ public class OutboxEvent {
      *  @param publishedTime 이벤트가 실제로 발행 완료된 시간
      */
     public void markAsPublished(LocalDateTime publishedTime) {
+        if (this.published) {
+            // 이미 발행된 이벤트에 대한 중복 호출 방지
+            throw new IllegalStateException("이미 발행된 이벤트입니다. EventId: " + this.eventId);
+        }
         this.published =true;
         this.publishedAt = publishedTime;
     }
