@@ -29,8 +29,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder(toBuilder = true)
-@EntityListeners(AuditingEntityListener.class)
-public class Order {
+public class Order extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -72,14 +71,6 @@ public class Order {
     private OrderStatus status = OrderStatus.PENDING;
 
     private LocalDateTime expiresAt; // 지정가 주문 만료 시간
-
-    @CreatedDate
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    @Column(nullable = false)
-    private LocalDateTime updatedAt;
 
     // === 비즈니스 메서드 ===
 

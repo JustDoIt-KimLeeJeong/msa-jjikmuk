@@ -18,8 +18,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
-@EntityListeners(AuditingEntityListener.class)
-public class OrderTrade {
+public class OrderTrade extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -43,10 +42,6 @@ public class OrderTrade {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     private OrderSide side;
-
-    @CreatedDate
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime executedAt;
 
     // === 비즈니스 메서드 ===
 
