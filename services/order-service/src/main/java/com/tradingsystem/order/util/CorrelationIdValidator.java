@@ -108,4 +108,21 @@ public final class CorrelationIdValidator {
         }
         return UUID_V7_PATTERN.matcher(uuid).matches();
     }
+
+    /**
+     * Correlation ID 검증 (예외 발생)
+     * - 유효하지 않은 형식이면 IllegalArgumentException 발생
+     * - Service 레이어에서 간결하게 사용 가능
+     *
+     * @param correlationId 검증할 Correlation ID
+     * @throws IllegalArgumentException 유효하지 않은 형식인 경우
+     */
+    public static void validate(String correlationId) {
+        if (!isValid(correlationId)) {
+            log.error("Invalid correlationId format: {}", correlationId);
+            throw new IllegalArgumentException(
+                    "유효하지 않은 Correlation ID 형식입니다: " + correlationId
+            );
+        }
+    }
 }
