@@ -61,16 +61,19 @@ public class OrderService {
         // 1. correlationId 검증
         CorrelationIdValidator.validate(request.getCorrelationId());
 
-        // 2. 중복 주문 체크
+        // 2. 주문 유형별 가격 검증 추가
+        request.validateOrderTypeAndPrice();
+
+        // 3. 중복 주문 체크
         validateDuplicateOrder(userId, request.getClientOrderId());
 
-        // 3. 주문 생성
+        // 4. 주문 생성
         Order order = buildOrder(userId, request);
         Order savedOrder = orderRepository.save(order);
 
         log.info("주문 생성 완료 - orderId: {}, status: {}", savedOrder.getId(), savedOrder.getStatus());
 
-        // 4. Outbox 이벤트 생성 (같은 트랜잭션)
+        // 5. Outbox 이벤트 생성 (같은 트랜잭션)
         createOutboxEvent(savedOrder, "OrderPlaced", request.getCorrelationId());
 
         return OrderResponse.from(savedOrder, request.getCorrelationId());
