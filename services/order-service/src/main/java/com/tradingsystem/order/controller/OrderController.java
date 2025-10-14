@@ -3,6 +3,7 @@ package com.tradingsystem.order.controller;
 import com.tradingsystem.order.dto.request.CreateOrderRequest;
 import com.tradingsystem.order.dto.response.OrderResponse;
 import com.tradingsystem.order.dto.response.PageResponse;
+import com.tradingsystem.order.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,8 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class OrderController {
 
-    // TODO: OrderService 주입 예정
-    // private final OrderService orderService;
+    private final OrderService orderService;
 
     /**
      * 주문 생성
@@ -42,11 +42,11 @@ public class OrderController {
         log.info("주문 생성 요청 - correlationId: {}, userId: {}, symbol: {}, side: {}, type: {}",
                 correlationId, userId, request.getSymbol(), request.getSide(), request.getType());
 
-        // TODO: Service 레이어 구현 후 연결
-        // OrderResponse response = orderService.createOrder(userId, request);
-        // return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        OrderResponse response = orderService.createOrder(userId, request);
 
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        log.info("주문 생성 완료 - orderId: {}, correlationId: {}", response.getOrderId(), correlationId);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**
@@ -66,11 +66,11 @@ public class OrderController {
         log.info("주문 취소 요청 - correlationId: {}, userId: {}, orderId: {}",
                 correlationId, userId, orderId);
 
-        // TODO: Service 레이어 구현 후 연결
-        // OrderResponse response = orderService.cancelOrder(userId, orderId);
-        // return ResponseEntity.ok(response);
+        OrderResponse response = orderService.cancelOrder(userId, orderId);
 
-        return ResponseEntity.ok().build();
+        log.info("주문 취소 완료 - orderId: {}, correlationId: {}", orderId, correlationId);
+        return ResponseEntity.ok(response);
+
     }
 
     /**
@@ -80,20 +80,17 @@ public class OrderController {
      * @param orderId 조회할 주문 ID
      * @return 주문 상세 정보
      */
-    @GetMapping("{/orderId}")
+    @GetMapping("/{orderId}")
     public ResponseEntity<OrderResponse> getOrder(
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-Correlation-Id") String correlationId,
             @PathVariable Long orderId
     ) {
-        log.info("주문 단건 조회 요청 - correlationId: {}, userId: {}, orderId: {}",
+        log.debug("주문 단건 조회 요청 - correlationId: {}, userId: {}, orderId: {}",
                 correlationId, userId, orderId);
 
-        // TODO: Service 레이어 구현 후 연결
-        // OrderResponse response = orderService.getOrder(userId, orderId);
-        // return ResponseEntity.ok(response);
-
-        return ResponseEntity.ok().build();
+        OrderResponse response = orderService.getOrder(userId, orderId, correlationId);
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -114,14 +111,11 @@ public class OrderController {
         @RequestParam(defaultValue = "20") int size,
         @RequestParam(required = false) String status
     ) {
-        log.info("주문 목록 조회 요청 - correlationId: {}, userId: {}, page: {}, size: {}, status: {}",
+        log.debug("주문 목록 조회 요청 - correlationId: {}, userId: {}, page: {}, size: {}, status: {}",
                 correlationId, userId, page, size, status);
 
-        // TODO: Service 레이어 구현 후 연결
-        // PageResponse<OrderResponse> response = orderService.getOrders(userId, page, size, status);
-        // return ResponseEntity.ok(response);
-
-        return ResponseEntity.ok().build();
+        PageResponse<OrderResponse> response = orderService.getOrders(userId, page, size, status, correlationId);
+        return ResponseEntity.ok(response);
     }
 
 }
