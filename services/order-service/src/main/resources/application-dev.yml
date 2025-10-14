@@ -13,7 +13,7 @@ spring:
   # JPA 개발 설정
   jpa:
     hibernate:
-      ddl-auto: create-drop  # 개발 중에는 create-drop, 나중에 validate로 변경
+      ddl-auto: update
     show-sql: true
 
   # Kafka 개발 설정
