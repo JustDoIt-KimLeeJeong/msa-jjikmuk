@@ -80,6 +80,14 @@ public class CreateOrderRequest {
     @Max(value = 10000000, message = "가격은 1,000만원을 초과할 수 없습니다")
     private Integer price;
 
+    /**
+     * 주문 수량
+     */
+    @NotNull(message = "주문 수량은 필수입니다")
+    @Min(value = 1, message = "주문 수량은 최소 1주 이상이어야 합니다")
+    @Max(value = 1000000, message = "주문 수량은 최대 1,000,000주를 초과할 수 없습니다")
+    private Integer quantity;
+
     // === 비즈니스 검증 메서드 ===
 
     /**
