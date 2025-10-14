@@ -42,7 +42,7 @@ public class OrderController {
         log.info("주문 생성 요청 - correlationId: {}, userId: {}, symbol: {}, side: {}, type: {}",
                 correlationId, userId, request.getSymbol(), request.getSide(), request.getType());
 
-        OrderResponse response = orderService.createOrder(userId, request);
+        OrderResponse response = orderService.createOrder(userId, request, correlationId);
 
         log.info("주문 생성 완료 - orderId: {}, correlationId: {}", response.getOrderId(), correlationId);
 
@@ -66,7 +66,7 @@ public class OrderController {
         log.info("주문 취소 요청 - correlationId: {}, userId: {}, orderId: {}",
                 correlationId, userId, orderId);
 
-        OrderResponse response = orderService.cancelOrder(userId, orderId);
+        OrderResponse response = orderService.cancelOrder(userId, orderId, correlationId);
 
         log.info("주문 취소 완료 - orderId: {}, correlationId: {}", orderId, correlationId);
         return ResponseEntity.ok(response);

@@ -54,12 +54,12 @@ public class OrderService {
      * @throws DuplicateOrderException 중복 주문 시
      */
     @Transactional
-    public OrderResponse createOrder(Long userId, CreateOrderRequest request) {
+    public OrderResponse createOrder(Long userId, CreateOrderRequest request, String correlationId) {
         log.info("주문 생성 시작 - userId: {}, clientOrderId: {}, symbol: {}",
                 userId, request.getClientOrderId(), request.getSymbol());
 
         // 1. correlationId 검증
-        CorrelationIdValidator.validate(request.getCorrelationId());
+        CorrelationIdValidator.validate(correlationId);
 
         // 2. 주문 유형별 가격 검증 추가
         request.validateOrderTypeAndPrice();
@@ -74,9 +74,9 @@ public class OrderService {
         log.info("주문 생성 완료 - orderId: {}, status: {}", savedOrder.getId(), savedOrder.getStatus());
 
         // 5. Outbox 이벤트 생성 (같은 트랜잭션)
-        createOutboxEvent(savedOrder, "OrderPlaced", request.getCorrelationId());
+        createOutboxEvent(savedOrder, "OrderPlaced", correlationId);
 
-        return OrderResponse.from(savedOrder, request.getCorrelationId());
+        return OrderResponse.from(savedOrder, correlationId);
     }
 
     /**
@@ -91,7 +91,7 @@ public class OrderService {
      * @throws OrderNotFoundException 주문을 찾을 수 없을 때
      */
     @Transactional
-    public OrderResponse cancelOrder(Long userId, Long orderId) {
+    public OrderResponse cancelOrder(Long userId, Long orderId, String correlationId) {
         log.info("주문 취소 시작 - userId: {}, orderId: {}", userId, orderId);
 
         // 1. 주문 조회 및 소유권 검증
@@ -106,7 +106,6 @@ public class OrderService {
         log.info("주문 취소 완료 - orderId: {}, status: {}", order.getId(), order.getStatus());
 
         // 4. Outbox 이벤트 생성
-        String correlationId = generateCorrelationId("CANCEL");
         createOutboxEvent(order, "OrderCancelled", correlationId);
 
         return OrderResponse.from(order, correlationId);
@@ -179,12 +178,9 @@ public class OrderService {
         OrderType type = request.getType();
         OrderSide side = request.getSide();
 
-        // 시장가 주문은 price null, 지정가는 필수
+        // 지정가는 price 필수
         BigDecimal price = null;
         if (type == OrderType.LIMIT) {
-            if (request.getPrice() == null) {
-                throw new IllegalArgumentException("지정가 주문은 price가 필수입니다.");
-            }
             price = BigDecimal.valueOf(request.getPrice());
         }
 
