@@ -2,6 +2,8 @@ package com.jjikmuk.execution_service.infrastructure.messaging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjikmuk.execution_service.domain.event.DomainEvent;
+import com.jjikmuk.execution_service.domain.event.payload.OrderCancelRejected;
+import com.jjikmuk.execution_service.domain.event.payload.OrderCancelSucceeded;
 import com.jjikmuk.execution_service.domain.event.payload.TradeExecuted;
 import lombok.RequiredArgsConstructor;
 
@@ -39,6 +41,36 @@ public class ExecutionEventsProducer {
             // Kafka 토픽으로 이벤트를 전송합니다.
             // 메시지 키로 aggregateId(orderId)를 사용하여, 동일한 주문에 대한 이벤트들이
             // 항상 같은 파티션에 순서대로 저장되도록 보장합니다.
+            kafkaTemplate.send(TOPIC, evt.getAggregateId(), evt);
+        }
+
+        /**
+         * OrderCancelSucceeded 이벤트를 Kafka로 발행합니다.
+         * 이 메소드는 OutboxRelayScheduler에 의해 호출됩니다.
+         */
+        public void publishOrderCancelSucceeded(OrderCancelSucceeded payload) {
+            DomainEvent evt = DomainEvent.builder()
+                    .eventId(UUID.randomUUID().toString())
+                    .eventType("OrderCancelSucceeded")
+                    .aggregateId(payload.orderId())
+                    .timestamp(Instant.now())
+                    .data(objectMapper.valueToTree(payload))
+                    .build();
+            kafkaTemplate.send(TOPIC, evt.getAggregateId(), evt);
+        }
+
+        /**
+         * OrderCancelRejected 이벤트를 Kafka로 발행합니다.
+         * 이 메소드는 OutboxRelayScheduler에 의해 호출됩니다.
+         */
+        public void publishOrderCancelRejected(OrderCancelRejected payload) {
+            DomainEvent evt = DomainEvent.builder()
+                    .eventId(UUID.randomUUID().toString())
+                    .eventType("OrderCancelRejected")
+                    .aggregateId(payload.orderId())
+                    .timestamp(Instant.now())
+                    .data(objectMapper.valueToTree(payload))
+                    .build();
             kafkaTemplate.send(TOPIC, evt.getAggregateId(), evt);
         }
 }

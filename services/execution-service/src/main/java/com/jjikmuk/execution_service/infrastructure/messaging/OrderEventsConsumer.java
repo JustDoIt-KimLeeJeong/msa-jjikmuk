@@ -25,10 +25,12 @@ public class OrderEventsConsumer {
     )
     public void listen(DomainEvent evt)
     {
+        log.debug("DomainEvent 수신: {}", evt);
         try {
             switch (evt.getEventType()) {
                 case "OrderAccepted" -> {
                     OrderAccepted payload = objectMapper.convertValue(evt.getData(), OrderAccepted.class);
+                    log.debug("OrderAccepted 페이로드 처리 중: {}", payload);
                     executionService.onOrderAccepted(new DomainEvent<>(
                             evt.getEventId(),
                             evt.getEventType(),
@@ -39,6 +41,7 @@ public class OrderEventsConsumer {
                 }
                 case "OrderCancelled" -> {
                     OrderCancelled payload = objectMapper.convertValue(evt.getData(), OrderCancelled.class);
+                    log.debug("OrderCancelled 페이로드 처리 중: {}", payload);
                     executionService.onOrderCancelled(new DomainEvent<>(
                             evt.getEventId(),
                             evt.getEventType(),
