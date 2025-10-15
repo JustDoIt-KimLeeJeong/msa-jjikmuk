@@ -18,6 +18,7 @@ spring:
     topic: # Kafka Topic Definitions
       order-events: order-events
       market-data-ticks: market-data-ticks
+      execution-events: execution-events
 
     # Consumer (JSON)
     consumer:

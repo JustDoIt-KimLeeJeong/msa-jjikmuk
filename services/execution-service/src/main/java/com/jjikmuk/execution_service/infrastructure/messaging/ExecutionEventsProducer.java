@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjikmuk.execution_service.domain.event.DomainEvent;
 import com.jjikmuk.execution_service.domain.event.payload.TradeExecuted;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
@@ -16,8 +18,8 @@ public class ExecutionEventsProducer {
 
     private final KafkaTemplate<String, DomainEvent> kafkaTemplate;
     private final ObjectMapper objectMapper;
-
-    private static final String TOPIC = "execution-events"; //TODO: 환경변수로 바꿔라
+    @Value("${spring.kafka.topic.execution-events}")
+    private String TOPIC;
 
         /**
          * TradeExecuted 이벤트를 Kafka로 발행합니다.
