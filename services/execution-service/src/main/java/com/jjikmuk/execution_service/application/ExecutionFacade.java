@@ -2,11 +2,7 @@ package com.jjikmuk.execution_service.application;
 
 import com.jjikmuk.execution_service.application.mapper.OrderMapper;
 import com.jjikmuk.execution_service.domain.event.DomainEvent;
-import com.jjikmuk.execution_service.domain.event.payload.OrderAccepted;
-import com.jjikmuk.execution_service.domain.event.payload.OrderCancelled;
-import com.jjikmuk.execution_service.domain.event.payload.OrderCancelRejected;
-import com.jjikmuk.execution_service.domain.event.payload.OrderCancelSucceeded;
-import com.jjikmuk.execution_service.domain.event.payload.TradeExecuted;
+import com.jjikmuk.execution_service.domain.event.payload.*;
 import com.jjikmuk.execution_service.domain.model.Fill;
 import com.jjikmuk.execution_service.domain.model.Order;
 import com.jjikmuk.execution_service.domain.model.value.OrderId;
@@ -24,6 +20,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -69,34 +66,44 @@ public class ExecutionFacade {
             if (fillOpt.isPresent()) {
                 Fill fill = fillOpt.get();
 
-                // 2.4. 체결 결과(Fill)를 양쪽 주문의 거래(Trade)에 각각 반영
-                executionRepository.upsertTradeAndAppendFills(incomingOrder.getOrderId(), incomingOrder.getSide(), incomingOrder.getSymbol(), List.of(fill), fill.qty(), now);
-                executionRepository.upsertTradeAndAppendFills(openOrder.getOrderId(), openOrder.getSide(), openOrder.getSymbol(), List.of(fill), fill.qty(), now);
+                // [1. ID 생성]
+                // 매수-매도 주문 매칭에 대한 고유한 거래 ID(tradeId)를 생성합니다.
+                // 이 ID는 양쪽 주문의 체결 이벤트에 동일하게 사용되어, 하나의 거래로 묶어줍니다.
+                String tradeId = UUID.randomUUID().toString();
 
-                // 2.5. 양쪽 주문에 대한 체결 이벤트를 각각 발행 (Outbox)
-                // 2.5.1. 신규 주문(Taker)에 대한 이벤트
+                // [2. DB 저장]
+                // 생성된 tradeId를 포함하여 체결 내역(Fill)을 DB에 기록합니다.
+                // 양쪽 주문(incoming, open) 모두에 대해 동일한 tradeId가 저장됩니다.
+                executionRepository.upsertTradeAndAppendFills(tradeId, incomingOrder.getOrderId(), incomingOrder.getSide(), incomingOrder.getSymbol(), List.of(fill), fill.qty(), now);
+                executionRepository.upsertTradeAndAppendFills(tradeId, openOrder.getOrderId(), openOrder.getSide(), openOrder.getSymbol(), List.of(fill), fill.qty(), now);
+
+                // [3. 이벤트 생성]
+                // Outbox 패턴에 따라 발행할 체결 이벤트를 생성합니다.
+
+                // 3.1. 신규 주문(Taker)에 대한 이벤트
                 TradeExecuted.OrderStatus incomingStatus = (incomingOrder.getLeavesQty() > 0) ? TradeExecuted.OrderStatus.PARTIALLY_FILLED : TradeExecuted.OrderStatus.FILLED;
-
+                FillPayload incomingFillPayload = new FillPayload(fill.price(), fill.qty());
                 TradeExecuted incomingTradeEvent = new TradeExecuted(
+                    tradeId, // <-- 1번에서 생성한 ID 사용
                     incomingOrder.getOrderId().value(),
                     incomingOrder.getSymbol().value(),
                     incomingOrder.getSide().name(),
-                    fill.price(),
-                    fill.qty(),
+                    incomingFillPayload,
                     incomingOrder.getLeavesQty(),
                     incomingStatus,
                     now
                 );
                 outboxPort.saveTradeExecuted(incomingTradeEvent);
 
-                // 2.5.2. 기존 주문(Maker)에 대한 이벤트
+                // 3.2. 기존 주문(Maker)에 대한 이벤트
                 TradeExecuted.OrderStatus openStatus = (openOrder.getLeavesQty() > 0) ? TradeExecuted.OrderStatus.PARTIALLY_FILLED : TradeExecuted.OrderStatus.FILLED;
+                FillPayload openFillPayload = new FillPayload(fill.price(), fill.qty());
                 TradeExecuted openTradeEvent = new TradeExecuted(
+                    tradeId, // <-- 1번에서 생성한 동일한 ID 사용
                     openOrder.getOrderId().value(),
                     openOrder.getSymbol().value(),
                     openOrder.getSide().name(),
-                    fill.price(),
-                    fill.qty(),
+                    openFillPayload,
                     openOrder.getLeavesQty(),
                     openStatus,
                     now
@@ -177,6 +184,9 @@ public class ExecutionFacade {
         List<Fill> fills = matchingEngine.processTick(symbol, bidp1, askp1, now);
 
         for (Fill fill : fills) {
+            // A single tradeId for the match against the market tick
+            String tradeId = UUID.randomUUID().toString();
+
             // Fill 처리 로직 (handleOrderAccepted에서 복사 및 Tick 기반으로 수정)
             Optional<Order> filledOpenOrderOpt = executionRepository.findOpen(fill.orderId());
             if (filledOpenOrderOpt.isEmpty()) {
@@ -203,19 +213,20 @@ public class ExecutionFacade {
                     .build();
 
             // 2.4. 체결 결과(Fill)를 양쪽 주문의 거래(Trade)에 각각 반영
-            executionRepository.upsertTradeAndAppendFills(filledOpenOrder.getOrderId(), filledOpenOrder.getSide(), filledOpenOrder.getSymbol(), List.of(fill), filledOpenOrder.getLeavesQty(), now);
-            executionRepository.upsertTradeAndAppendFills(syntheticCounterOrder.getOrderId(), syntheticCounterOrder.getSide(), syntheticCounterOrder.getSymbol(), List.of(fill), syntheticCounterOrder.getLeavesQty(), now);
+            executionRepository.upsertTradeAndAppendFills(tradeId, filledOpenOrder.getOrderId(), filledOpenOrder.getSide(), filledOpenOrder.getSymbol(), List.of(fill), filledOpenOrder.getLeavesQty(), now);
+            executionRepository.upsertTradeAndAppendFills(tradeId, syntheticCounterOrder.getOrderId(), syntheticCounterOrder.getSide(), syntheticCounterOrder.getSymbol(), List.of(fill), syntheticCounterOrder.getLeavesQty(), now);
 
             // 2.5. 양쪽 주문에 대한 체결 이벤트를 각각 발행 (Outbox)
 
             // 2.5.1. 오더북 주문에 대한 이벤트
             TradeExecuted.OrderStatus filledOrderStatus = (filledOpenOrder.getLeavesQty() > 0) ? TradeExecuted.OrderStatus.PARTIALLY_FILLED : TradeExecuted.OrderStatus.FILLED;
+            FillPayload filledFillPayload = new FillPayload(fill.price(), fill.qty());
             TradeExecuted filledOrderEvent = new TradeExecuted(
+                tradeId,
                 filledOpenOrder.getOrderId().value(),
                 filledOpenOrder.getSymbol().value(),
                 filledOpenOrder.getSide().name(),
-                fill.price(),
-                fill.qty(),
+                filledFillPayload,
                 filledOpenOrder.getLeavesQty(),
                 filledOrderStatus,
                 now
@@ -223,12 +234,13 @@ public class ExecutionFacade {
             outboxPort.saveTradeExecuted(filledOrderEvent);
 
             // 2.5.2. 가상 주문에 대한 이벤트 (항상 FILLED)
+            FillPayload syntheticFillPayload = new FillPayload(fill.price(), fill.qty());
             TradeExecuted syntheticOrderEvent = new TradeExecuted(
+                tradeId,
                 syntheticCounterOrder.getOrderId().value(),
                 syntheticCounterOrder.getSymbol().value(),
                 syntheticCounterOrder.getSide().name(),
-                fill.price(),
-                fill.qty(),
+                syntheticFillPayload,
                 0L, // 가상 주문은 잔량 0
                 TradeExecuted.OrderStatus.FILLED,
                 now
