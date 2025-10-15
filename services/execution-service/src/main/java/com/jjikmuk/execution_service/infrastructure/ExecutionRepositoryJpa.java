@@ -82,14 +82,30 @@ public class ExecutionRepositoryJpa implements ExecutionRepository {
     }
 
     @Override
-    public void upsertTradeAndAppendFills(OrderId orderId, Order.Side side, Symbol symbol, List<Fill> fills, long leavesQty, Instant now) {
+    public List<Order> findMatchingBuyOrders(Symbol symbol, java.math.BigDecimal askPrice) {
+        return orderOpenJpaRepository.findAllBySymbolAndSideAndPriceGreaterThanEqualOrderByPriceDescArrivalSeqAsc(symbol.value(), Order.Side.BUY, askPrice)
+            .stream()
+            .map(mapper::toDomain)
+            .toList();
+    }
+
+    @Override
+    public List<Order> findMatchingSellOrders(Symbol symbol, java.math.BigDecimal bidPrice) {
+        return orderOpenJpaRepository.findAllBySymbolAndSideAndPriceLessThanEqualOrderByPriceAscArrivalSeqAsc(symbol.value(), Order.Side.SELL, bidPrice)
+            .stream()
+            .map(mapper::toDomain)
+            .toList();
+    }
+
+    @Override
+    public void upsertTradeAndAppendFills(String tradeId, OrderId orderId, Order.Side side, Symbol symbol, List<Fill> fills, long leavesQty, Instant now) {
         // 1. orderId로 기존 Trade를 찾거나, 없으면 새로 생성
         TradeEntity tradeEntity = tradeJpaRepository.findByOrderId(orderId.value())
                 .orElseGet(() -> new TradeEntity(orderId.value(), symbol.value(), side, leavesQty));
 
         // 2. 새로운 Fill 들을 Trade에 추가
         for (Fill fill : fills) {
-            FillEntity fillEntity = mapper.toFillEntity(fill, tradeEntity);
+            FillEntity fillEntity = mapper.toFillEntity(fill, tradeEntity, tradeId);
             tradeEntity.addFill(fillEntity);
         }
 

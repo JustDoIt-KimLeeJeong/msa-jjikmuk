@@ -40,9 +40,10 @@ public class PersistenceMapper {
             .build();
     }
 
-    public FillEntity toFillEntity(Fill fill, TradeEntity trade) {
+    public FillEntity toFillEntity(Fill fill, TradeEntity trade, String tradeId) {
         return new FillEntity(
             trade,
+            tradeId,
             fill.price(),
             fill.qty(),
             fill.executedAt()

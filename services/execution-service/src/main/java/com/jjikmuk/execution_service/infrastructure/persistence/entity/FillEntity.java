@@ -19,8 +19,11 @@ public class FillEntity {
     private Long fillId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "trade_id")
+    @JoinColumn(name = "trade_summary_id")
     private TradeEntity trade;
+
+    @Column(length = 36, nullable = false)
+    private String tradeId;
 
     @Column(precision = 18, scale = 4, nullable = false) // scale 소수점 이하 자릿수.
     private BigDecimal price;
@@ -31,8 +34,9 @@ public class FillEntity {
     @Column(nullable = false)
     private Instant executedAt;
 
-    public FillEntity(TradeEntity trade, BigDecimal price, long quantity, Instant executedAt) {
+    public FillEntity(TradeEntity trade, String tradeId, BigDecimal price, long quantity, Instant executedAt) {
         this.trade = trade;
+        this.tradeId = tradeId;
         this.price = price;
         this.quantity = quantity;
         this.executedAt = executedAt;

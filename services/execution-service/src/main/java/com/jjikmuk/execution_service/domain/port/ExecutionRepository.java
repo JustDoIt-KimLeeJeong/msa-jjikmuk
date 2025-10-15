@@ -47,6 +47,16 @@ public interface ExecutionRepository {
      */
     List<Order> findAllOpenOrdersBySymbol(Symbol symbol);
 
+    /**
+     * 시장가(ask price)와 체결 가능한 매수 주문 목록을 조회한다.
+     */
+    List<Order> findMatchingBuyOrders(Symbol symbol, java.math.BigDecimal askPrice);
+
+    /**
+     * 시장가(bid price)와 체결 가능한 매도 주문 목록을 조회한다.
+     */
+    List<Order> findMatchingSellOrders(Symbol symbol, java.math.BigDecimal bidPrice);
+
     // -------------------- 체결 / Fill 관련 --------------------
 
     /**
@@ -63,7 +73,8 @@ public interface ExecutionRepository {
      * - Trade 테이블이 없으면 Insert, 있으면 Update
      * - Fill 은 체결 내역 로그로 append
      */
-    void upsertTradeAndAppendFills(OrderId orderId,
+    void upsertTradeAndAppendFills(String tradeId,
+                                   OrderId orderId,
                                    Order.Side side,
                                    Symbol symbol,
                                    List<Fill> fills,
