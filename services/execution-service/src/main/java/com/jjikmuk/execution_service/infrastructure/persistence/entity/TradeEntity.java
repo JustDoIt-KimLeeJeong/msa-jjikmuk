@@ -54,8 +54,8 @@ public class TradeEntity {
     @OneToMany(mappedBy = "trade", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<FillEntity> fills = new ArrayList<>();
 
-    public TradeEntity(String orderId, String symbol, Order.Side side, long leavesQty) {
-        this.tradeId = orderId;
+    public TradeEntity(String tradeId, String orderId, String symbol, Order.Side side, long leavesQty) {
+        this.tradeId = tradeId;
         this.orderId = orderId;
         this.symbol = symbol;
         this.side = side;
