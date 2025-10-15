@@ -21,13 +21,13 @@ public class OutboxAdapter implements OutboxPort {
     private final ObjectMapper objectMapper;
 
     @Override
-    public void saveTradeExecuted(Object dto) {
-        TradeExecuted payload = (TradeExecuted) dto;
+    public void saveTradeExecuted(TradeExecuted dto) {
+        TradeExecuted payload = dto;
         String jsonPayload = toJson(payload);
         OutboxEventEntity entity = new OutboxEventEntity(
             AGGREGATE_TYPE,
             payload.orderId(),
-            TradeExecuted.class.getSimpleName(),
+            TradeExecuted.class.getSimpleName(), // 패키지 경로를 제외한 순수한 클래스 이름을 문자열로 가져옴. "TradeExecuted" 도 무관.
             jsonPayload
         );
         outboxJpaRepository.save(entity);
