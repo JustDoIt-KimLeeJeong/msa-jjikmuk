@@ -69,6 +69,14 @@ public class ExecutionRepositoryJpa implements ExecutionRepository {
     }
 
     @Override
+    public void updateOpen(Order order) {
+        orderOpenJpaRepository.findById(order.getOrderId().value()).ifPresent(entity -> {
+            entity.setLeavesQty(order.getLeavesQty());
+            orderOpenJpaRepository.save(entity);
+        });
+    }
+
+    @Override
     public Optional<Order> findOpen(OrderId id) {
         return orderOpenJpaRepository.findById(id.value()).map(mapper::toDomain);
     }
@@ -101,7 +109,7 @@ public class ExecutionRepositoryJpa implements ExecutionRepository {
     public void upsertTradeAndAppendFills(String tradeId, OrderId orderId, Order.Side side, Symbol symbol, List<Fill> fills, long leavesQty, Instant now) {
         // 1. orderId로 기존 Trade를 찾거나, 없으면 새로 생성
         TradeEntity tradeEntity = tradeJpaRepository.findByOrderId(orderId.value())
-                .orElseGet(() -> new TradeEntity(orderId.value(), symbol.value(), side, leavesQty));
+                .orElseGet(() -> new TradeEntity(tradeId, orderId.value(), symbol.value(), side, leavesQty));
 
         // 2. 새로운 Fill 들을 Trade에 추가
         for (Fill fill : fills) {

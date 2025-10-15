@@ -11,6 +11,7 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -42,6 +43,7 @@ public class OrderOpenEntity {
     private BigDecimal price;
 
     @Column(nullable = false)
+    @Setter
     private long leavesQty;
 
     @Column(nullable = false)

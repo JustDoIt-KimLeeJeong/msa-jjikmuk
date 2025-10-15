@@ -39,13 +39,13 @@ public class ExecutionFacade {
         OrderAccepted payload = (OrderAccepted) event.getData();
 
         Instant now = timeProvider.now();
-        log.info("[OrderAccepted] eventId={} symbol={} side={} qty={}",
+        log.debug("[OrderAccepted] 이벤트 수신 - eventId={}, 심볼={}, 사이드={}, 수량={}",
                 event.getEventId(), payload.symbol(), payload.side(), payload.quantity());
 
         // 1. Mapper를 사용해 이벤트 페이로드로부터 도메인 모델(Order) 생성
         long arrivalSeq = symbolSeqPort.nextArrivalSeq(new Symbol(payload.symbol()));   // arrivalSeq 발급. - 시간 우선 보장
         Order incomingOrder = orderMapper.toDomain(payload, arrivalSeq, now);           // Order 객체 생성
-        log.debug("[OrderAccepted] Mapped incomingOrder={}", incomingOrder);
+        log.debug("[OrderAccepted] 매핑된 신규 주문: {}", incomingOrder);
 
         // 2. 체결 로직: 주문 잔량이 있고, 체결 조건이 맞으면 계속해서 오더북의 반대 주문과 매칭 시도
         while (incomingOrder.getLeavesQty() > 0) {
@@ -54,7 +54,7 @@ public class ExecutionFacade {
 
             // 2.2. 반대 주문이 없거나 가격이 맞지 않으면 매칭 중단
             if (bestOppositeOpt.isEmpty() || !incomingOrder.crosses(bestOppositeOpt.get().getPrice())) {
-                log.info("[Matching] No opposite order found. Stop matching. orderId={}", incomingOrder.getOrderId());
+                log.debug("[매칭] 반대 주문을 찾을 수 없습니다. 매칭 중단. orderId={}", incomingOrder.getOrderId());
                 break;
             }
 
@@ -93,6 +93,7 @@ public class ExecutionFacade {
                     incomingStatus,
                     now
                 );
+                log.debug("신규 주문 TradeExecuted 이벤트를 아웃박스에 저장: {}", incomingTradeEvent);
                 outboxPort.saveTradeExecuted(incomingTradeEvent);
 
                 // 3.2. 기존 주문(Maker)에 대한 이벤트
@@ -108,11 +109,16 @@ public class ExecutionFacade {
                     openStatus,
                     now
                 );
+                log.debug("오더북 주문 TradeExecuted 이벤트를 아웃박스에 저장: {}", openTradeEvent);
                 outboxPort.saveTradeExecuted(openTradeEvent);
 
-                // 2.6. 오더북에 있던 주문이 전량 체결되었으면 오더북에서 제거
+                // 2.6. 오더북에 있던 주문의 잔량 처리
                 if (openOrder.getLeavesQty() == 0) {
                     executionRepository.removeOpen(openOrder);
+                    log.debug("전량 체결된 오더북 주문 제거: {}", openOrder.getOrderId());
+                } else {
+                    executionRepository.updateOpen(openOrder);
+                    log.debug("부분 체결된 오더북 주문 업데이트: {} (잔량: {})", openOrder.getOrderId(), openOrder.getLeavesQty());
                 }
             } else {
                 // 매칭이 더 이상 불가능하면 중단
@@ -171,7 +177,7 @@ public class ExecutionFacade {
         // MatchingEngine에 Tick 정보를 전달하여 오더북의 주문들과 체결 시도
         // 이 부분은 MatchingEngine에 새로운 메서드가 필요합니다.
         // matchingEngine.processTick(symbol, bidp1, askp1, now);
-        log.info("Processing tick for symbol {} with bidp1={} and askp1={}", symbolValue, bidp1, askp1);
+        log.debug("심볼 {}에 대한 틱 처리 중 - bidp1={}, askp1={}", symbolValue, bidp1, askp1);
         // TODO: MatchingEngine에 processTick 메서드 구현 후 호출
     }
 
@@ -190,7 +196,7 @@ public class ExecutionFacade {
             // Fill 처리 로직 (handleOrderAccepted에서 복사 및 Tick 기반으로 수정)
             Optional<Order> filledOpenOrderOpt = executionRepository.findOpen(fill.orderId());
             if (filledOpenOrderOpt.isEmpty()) {
-                log.warn("Filled order not found in repository for OrderId: {}", fill.orderId().value());
+                log.warn("체결된 주문이 리포지토리에서 발견되지 않음: OrderId: {}", fill.orderId().value());
                 continue;
             }
             Order filledOpenOrder = filledOpenOrderOpt.get();

@@ -38,6 +38,11 @@ public interface ExecutionRepository {
     void removeOpen(Order order);
 
     /**
+     * 오더북에 있는 주문의 정보를 업데이트한다 (주로 잔량).
+     */
+    void updateOpen(Order order);
+
+    /**
      * 특정 주문을 조회한다.
      */
     Optional<Order> findOpen(OrderId id);
