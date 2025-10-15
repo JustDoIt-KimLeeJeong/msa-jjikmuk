@@ -8,6 +8,13 @@ spring:
     username: sa
     password:
 
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: true
+
   kafka:
     admin:
       # AdminClient 자동 연결 - 로컬/개발에서만 true 권장.
@@ -57,3 +64,11 @@ app:
       order-events: 30
       market-data-ticks: 30
     replication-factor: 1
+
+
+logging:
+  level:
+    root: INFO
+#    org.springframework.kafka: INFO
+#    org.apache.kafka: INFO
+    com.jjikmuk.execution_service: DEBUG
