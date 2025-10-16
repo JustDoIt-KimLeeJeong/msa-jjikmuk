@@ -12,6 +12,14 @@ import java.time.Instant;
 @Component
 public class OrderMapper {
 
+    /**
+     * OrderAccepted 이벤트를 기반으로 도메인 Order 객체를 생성합니다.
+     *
+     * @param payload   주문 접수 이벤트 페이로드
+     * @param arrivalSeq 해당 주문의 도착 순번 (Symbol 단위로 증가)
+     * @param createdAt  주문 생성 시각
+     * @return 변환된 도메인 Order 객체
+     */
     public Order toDomain(OrderAccepted payload, long arrivalSeq, Instant createdAt) {
         return Order.builder()
             .orderId(new OrderId(payload.orderId()))

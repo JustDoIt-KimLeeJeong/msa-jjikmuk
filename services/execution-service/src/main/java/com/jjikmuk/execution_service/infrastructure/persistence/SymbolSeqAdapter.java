@@ -15,6 +15,13 @@ public class SymbolSeqAdapter implements SymbolSeqPort {
 
     private final SymbolSeqJpaRepository repository;
 
+    /**
+     * 주어진 종목(Symbol)에 대한 다음 도착 순번을 생성 및 반환합니다.
+     *
+     * Propagation.REQUIRES_NEW를 통해 별도의 트랜잭션에서 수행되므로,
+     * 호출한 상위 트랜잭션의 롤백 여부와 관계없이 시퀀스 값은 안전하게 증가합니다.
+     *
+     */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public long nextArrivalSeq(Symbol symbol) {

@@ -34,6 +34,14 @@ public class ExecutionFacade {
     private final OrderMapper orderMapper;
     private final SymbolSeqPort symbolSeqPort;
 
+    /**
+     * 주문 접수 이벤트를 처리한다.
+     * 도착순번을 발급하고 도메인 Order로 매핑한 뒤, 반대 주문과 반복 매칭한다.
+     * 체결 결과는 Trade/Fill로 저장하고, Outbox에 TradeExecuted 이벤트를 적재한다.
+     * 미체결 잔량은 시장가면 취소, 지정가면 오더북에 등록한다.
+     *
+     * @param event 주문 접수 도메인 이벤트
+     */
     @Transactional
     public void handleOrderAccepted(DomainEvent event) {
         OrderAccepted payload = (OrderAccepted) event.getData();
@@ -143,6 +151,13 @@ public class ExecutionFacade {
         }
     }
 
+    /**
+     * 주문 취소 이벤트를 처리한다.
+     * 오더북에서 해당 주문을 제거하고, 성공/실패 여부에 따라
+     * CancelSucceeded 또는 CancelRejected 이벤트를 Outbox에 적재한다.
+     *
+     * @param event 주문 취소 도메인 이벤트
+     */
     @Transactional
     public void handleOrderCancelled(DomainEvent event) {
         OrderCancelled payload = (OrderCancelled) event.getData();
@@ -169,6 +184,14 @@ public class ExecutionFacade {
         }
     }
 
+    /**
+     * 시세 틱을 기반으로 오더북의 주문과 교차 가능한 체결을 수행한다.
+     * 생성된 체결들에 대해 Trade/Fill 저장 및 TradeExecuted 이벤트를 Outbox에 적재한다.
+     *
+     * @param symbolValue 심볼 문자열
+     * @param bidp1 현재 최우선 매수호가
+     * @param askp1 현재 최우선 매도호가
+     */
     @Transactional
     public void matchOrders(String symbolValue, BigDecimal bidp1, BigDecimal askp1) {
         Symbol symbol = new Symbol(symbolValue);
@@ -181,6 +204,13 @@ public class ExecutionFacade {
         // TODO: MatchingEngine에 processTick 메서드 구현 후 호출
     }
 
+    /**
+     * (예비 훅) 틱 기반 매칭 호출부. 실제 처리는 processTick 구현 이후 사용한다.
+     *
+     * @param symbolValue 심볼 문자열
+     * @param bidp1 최우선 매수호가
+     * @param askp1 최우선 매도호가
+     */
     @Transactional
     public void processMarketDataTick(String symbolValue, BigDecimal bidp1, BigDecimal askp1) {
         Symbol symbol = new Symbol(symbolValue);
