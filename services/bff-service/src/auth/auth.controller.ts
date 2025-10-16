@@ -10,10 +10,18 @@ import { FastifyReply } from 'fastify';
 import { AuthService } from './auth.service';
 import { SignupRequestDto } from './dto/signup-request.dto';
 import { LoginRequestDto } from './dto/login-request.dto';
+import { InjectMetric } from '@willsoto/nestjs-prometheus';
+import { Counter, Histogram } from 'prom-client';
 
 @Controller('/api/auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    @InjectMetric('auth_requests_total')
+    private readonly requestCounter: Counter<string>,
+    @InjectMetric('auth_request_duration_seconds')
+    private readonly requestDuration: Histogram<string>,
+  ) {}
 
   @Post('signup')
   @HttpCode(201)
@@ -21,18 +29,26 @@ export class AuthController {
     @Body() dto: SignupRequestDto,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
-    const { accessToken, userId } = await this.authService.signupAndLogin(dto);
+    const end = this.requestDuration.startTimer();
+    this.requestCounter.inc({ method: 'POST', endpoint: '/signup' });
 
-    // JWT 토큰을 httpOnly 쿠키로 설정
-    (res as any).setCookie('access_token', accessToken, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 10, // 10일 (초 단위)
-    });
+    try {
+      const { accessToken, userId } =
+        await this.authService.signupAndLogin(dto);
 
-    res.send({ userId }); // 사용자 정보 일부 응답
+      // JWT 토큰을 httpOnly 쿠키로 설정
+      (res as any).setCookie('access_token', accessToken, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 10, // 10일 (초 단위)
+      });
+
+      res.send({ userId }); // 사용자 정보 일부 응답
+    } finally {
+      end();
+    }
   }
 
   @Post('login')
@@ -41,32 +57,46 @@ export class AuthController {
     @Body() loginDto: LoginRequestDto,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
-    const { accessToken, userId } = await this.authService.login(loginDto);
+    const end = this.requestDuration.startTimer();
+    this.requestCounter.inc({ method: 'POST', endpoint: '/login' });
 
-    // JWT 토큰을 httpOnly 쿠키로 설정
-    (res as any).setCookie('access_token', accessToken, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 10, // 10일 (초 단위)
-    });
+    try {
+      const { accessToken, userId } = await this.authService.login(loginDto);
 
-    res.send({ userId }); // 사용자 정보 일부 응답
+      // JWT 토큰을 httpOnly 쿠키로 설정
+      (res as any).setCookie('access_token', accessToken, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 10, // 10일 (초 단위)
+      });
+
+      res.send({ userId }); // 사용자 정보 일부 응답
+    } finally {
+      end();
+    }
   }
 
   @Post('logout')
   @HttpCode(200)
   async logout(@Res({ passthrough: true }) res: FastifyReply) {
-    // JWT 토큰 쿠키 삭제 (Max-Age=0으로 만료)
-    (res as any).setCookie('access_token', '', {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: 0, // 즉시 만료
-    });
+    const end = this.requestDuration.startTimer();
+    this.requestCounter.inc({ method: 'POST', endpoint: '/logout' });
 
-    res.send({ message: 'Logged out' });
+    try {
+      // JWT 토큰 쿠키 삭제 (Max-Age=0으로 만료)
+      (res as any).setCookie('access_token', '', {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+        maxAge: 0, // 즉시 만료
+      });
+
+      res.send({ message: 'Logged out' });
+    } finally {
+      end();
+    }
   }
 }
