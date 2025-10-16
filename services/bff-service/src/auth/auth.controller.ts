@@ -5,6 +5,7 @@ import {
   HttpCode,
   ValidationPipe,
   Res,
+  Logger,
 } from '@nestjs/common';
 import { FastifyReply } from 'fastify';
 import { AuthService } from './auth.service';
@@ -15,6 +16,8 @@ import { Counter, Histogram } from 'prom-client';
 
 @Controller('/api/auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly authService: AuthService,
     @InjectMetric('auth_requests_total')
@@ -29,6 +32,7 @@ export class AuthController {
     @Body() dto: SignupRequestDto,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
+    this.logger.log(`POST /api/auth/signup 요청 수신: ${dto.email}`);
     const end = this.requestDuration.startTimer();
     this.requestCounter.inc({ method: 'POST', endpoint: '/signup' });
 
@@ -45,7 +49,14 @@ export class AuthController {
         maxAge: 60 * 60 * 24 * 10, // 10일 (초 단위)
       });
 
+      this.logger.log(`회원가입 + 자동로그인 응답 완료: userId=${userId}`);
       res.send({ userId }); // 사용자 정보 일부 응답
+    } catch (error) {
+      this.logger.error(
+        `회원가입 요청 처리 실패: ${dto.email}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw error;
     } finally {
       end();
     }
@@ -57,6 +68,7 @@ export class AuthController {
     @Body() loginDto: LoginRequestDto,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
+    this.logger.log(`POST /api/auth/login 요청 수신: ${loginDto.email}`);
     const end = this.requestDuration.startTimer();
     this.requestCounter.inc({ method: 'POST', endpoint: '/login' });
 
@@ -72,7 +84,14 @@ export class AuthController {
         maxAge: 60 * 60 * 24 * 10, // 10일 (초 단위)
       });
 
+      this.logger.log(`로그인 응답 완료: userId=${userId}`);
       res.send({ userId }); // 사용자 정보 일부 응답
+    } catch (error) {
+      this.logger.error(
+        `로그인 요청 처리 실패: ${loginDto.email}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw error;
     } finally {
       end();
     }
@@ -81,6 +100,7 @@ export class AuthController {
   @Post('logout')
   @HttpCode(200)
   async logout(@Res({ passthrough: true }) res: FastifyReply) {
+    this.logger.log('POST /api/auth/logout 요청 수신');
     const end = this.requestDuration.startTimer();
     this.requestCounter.inc({ method: 'POST', endpoint: '/logout' });
 
@@ -94,7 +114,14 @@ export class AuthController {
         maxAge: 0, // 즉시 만료
       });
 
+      this.logger.log('로그아웃 완료');
       res.send({ message: 'Logged out' });
+    } catch (error) {
+      this.logger.error(
+        '로그아웃 요청 처리 실패',
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw error;
     } finally {
       end();
     }
