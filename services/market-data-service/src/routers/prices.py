@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from typing import List
 import asyncio, json, random
 from schemas import PriceItem, PriceListResponse, PriceResponse, ErrorItem
-from deps import now_ms
+from utils.time import now_ms
 
 router = APIRouter(tags=["prices"])
 
@@ -39,6 +39,8 @@ async def get_prices(request: Request, response: Response,
         return PriceListResponse(items=[], errors=[ErrorItem(symbol="*", code="TOO_MANY_SYMBOLS")])
     return _resolve_prices(request, sym_list)
 
+
+
 ## stream이 /prices/{symbol}보다 위에 있어야함.
 # 먼저 등록된 길이 먼저 잡힘. {symbols}이런게 동적 경로인데 이건 등록 상관없이 뭐든 잡아먹음
 # 그래서 동적 주소가 위에 있을 경우, 요청이 stream으로 오면 stream주소로 안가고 동적주소로 먹힘.
@@ -56,6 +58,7 @@ async def stream_prices(request: Request, response: Response,
     return StreamingResponse(_sse_generator(request, sym_list), media_type="text/event-stream")
 
 
+
 @router.get("/prices/{symbol}", response_model=PriceResponse)
 async def get_price_by_symbol(request: Request, response: Response, symbol: str):
     response.headers["Cache-Control"] = "no-store"
@@ -65,8 +68,12 @@ async def get_price_by_symbol(request: Request, response: Response, symbol: str)
         raise ValueError(f"{symbol} not found")
     return res.items[0]
 
+
+
 def _sse_encode(payload: dict) -> bytes:
     return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n".encode("utf-8")
+
+
 
 async def _sse_generator(request: Request, symbols: List[str]):
     ps = request.app.state.price_state

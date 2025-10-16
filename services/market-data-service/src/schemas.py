@@ -45,3 +45,20 @@ class PriceListResponse(BaseModel):
 
 class PriceResponse(PriceItem):
     pass
+
+
+###quotes
+class QuoteItem(BaseModel):
+    symbol: str
+    name : str
+    bid : float
+    ask: float
+    bidSize: float
+    askSize: float
+    ts: int
+
+class QuoteResponse(QuoteItem):
+    pass
+
+class QuotesStreamQuery(BaseModel):
+    symbols: List[str]
