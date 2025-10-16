@@ -1,0 +1,74 @@
+spring:
+  application:
+    name: execution-service
+
+  datasource:
+    url: jdbc:h2:mem:testdb # 인메모리 H2 데이터베이스를 사용
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: true
+
+  kafka:
+    admin:
+      # AdminClient 자동 연결 - 로컬/개발에서만 true 권장.
+      auto-create: true   # @Bean NewTopic(...) 으로 등록된 토픽이 Kafka에 없으면 자동 생성
+      fail-fast: true     # 브로커 연결 불가 시 애플리케이션 기동 실패
+
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    topic: # Kafka Topic Definitions
+      order-events: order-events
+      market-data-ticks: market-data-ticks
+      execution-events: execution-events
+
+    # Consumer (JSON)
+    consumer:
+      group-id: execution-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        # JsonDeserializer에 추가 옵션 전달
+        spring.json.trusted.packages: "*"          # 안전한 패키지 한정 (개발 단계는 * 가능)
+        spring.json.value.default.type: com.example.OrderEvent # 타입 헤더 없을 때 기본 타입
+        spring.json.use.type.headers: true         # 타입 헤더 사용(멀티 DTO 시 유용)
+
+    # Producer (JSON)
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false   # 타입 헤더 첨부(컨슈머 자동 매핑 도움)
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: execution-service
+
+app:
+  kafka:
+    partitions:
+      order-events: 30
+      market-data-ticks: 30
+    replication-factor: 1
+
+
+logging:
+  level:
+    root: INFO
+#    org.springframework.kafka: INFO
+#    org.apache.kafka: INFO
+    com.jjikmuk.execution_service: DEBUG

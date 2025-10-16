@@ -1,0 +1,99 @@
+services:
+  # 1. Kafka (KRaft mode)
+  kafka:
+    image: confluentinc/cp-kafka:7.7.5
+    container_name: kafka_jjik
+    restart: unless-stopped
+    ports:
+      - "29092:29092"   # Host 전용 포트
+    environment:
+      # === KRaft 모드 설정 ===
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_NODE_ID: "1"
+      # 브로커가 listen할 실제 포트 정의 : 내부(9092), 컨트롤러(9093), 호스트전용(29092) 리스너
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:29092
+      # 다른 클라이언트(내/외부)가 이 브로크에 접속ㅎ살 때 참조할 주소 : 내부 컨테이너는 kafka:9092, 호스트(개발 환경, IDE, CLI)에는 localhost:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      # 각 리스너 이름을 어떤 보안 프로토콜로 처리할지 매핑 : PLAINTEXT (암호화 없음)
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+
+      # === 단일 브로커 설정 ===
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      # === 단일 브로커 기본값들 ===
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_NUM_PARTITIONS: "1"
+      KAFKA_MIN_INSYNC_REPLICAS: "1"
+
+      # === 로깅 및 안정성 ===
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+
+      # === 클러스터 ID 고정 ===
+      CLUSTER_ID: FpsANus9RYqj6SpEpTSjSA
+
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'nc -z localhost 9092'"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  execution-service:
+    build: .
+    container_name: execution-service
+    ports:
+      - "8083:8080"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    env_file: [ ./.env ]
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui-jjik
+    ports:
+      - "8084:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus_jjik
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9091:9090"
+    depends_on:
+      - execution-service
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana_jjik
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  kafka_data:
+  grafana-data:
