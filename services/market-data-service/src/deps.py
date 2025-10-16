@@ -1,4 +1,4 @@
-import json, pathlib
+import json, pathlib, time
 import redis.asyncio as redis
 #redis 연결, 종료 보장.
 from contextlib import asynccontextmanager
@@ -8,6 +8,14 @@ from config import Settings
 
 DATA_DIR = pathlib.Path(__file__).parent / "data"
 
+## pirces
+def now_ms() -> int:
+    return int(time.time()*3000)
+
+def _load_json(p: pathlib.Path):
+    with open(p, "r", encoding="utf-8") as f:
+        return json.load(f)
+        
 # FastAPI 애플리케이션의 lifecycle(lifespan) 관리 함수
 # 앱 시작 시: Redis 연결 생성 → app.state에 저장
 # 앱 종료 시: Redis 연결을 닫아줌 (자원 누수 방지)
@@ -23,14 +31,20 @@ async def lifespan(app):
         decode_responses=True
     )
 
-    symbols_path = DATA_DIR/"symbols.json"
-    with open(symbols_path, "r", encoding="utf-8") as f:
-        app.state.symbols = json.load(f)
+    # symbols.json
+    symbols = _load_json(DATA_DIR / "symbols.json")
+    app.state.symbols = symbols
+    app.state.name_map = {s["symbol"]: s["name"] for s in symbols["symbols"]}
+    
+    # prices.json (없으면 최소 구조로 대체)
     try:
-        # yield 지점까지 실행 → 앱이 동작하는 동안 이 상태 유지
+        app.state.price_state = _load_json(DATA_DIR / "prices.json")
+    except FileNotFoundError:
+        app.state.price_state = {"last": {}, "chgPct": {}}
+
+    try:
         yield
     finally:
-        # 앱이 종료될 때 Redis 연결 닫기
         await app.state.redis.close()
 
 

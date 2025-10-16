@@ -1,9 +1,8 @@
-from typing import Literal, List
+from typing import Literal, List, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
 
-Market = Literal["KOSPI", "KOSDAQ"]
-
+###symbols
 class Rules(BaseModel):
     maxSymbols: int = 30
     defaultWatchlist: List[str]
@@ -13,7 +12,7 @@ class Rules(BaseModel):
 class SymbolItem(BaseModel):
     symbol: str
     name: str
-    market: Market
+    market: Literal["KOSPI"]
     isin: str
     currency: Literal["KRW"]
     tickSize: int
@@ -27,3 +26,22 @@ class SymbolsResponse(BaseModel):
     updatedAt: datetime
     rules: Rules
     symbols: List[SymbolItem]
+
+###prices
+class ErrorItem(BaseModel):
+    symbol : str
+    code : str
+
+class PriceItem(BaseModel):
+    symbol : str
+    name : str
+    last : float
+    chgPct: float = Field(..., description="전일 대비율(%)")
+    ts : int 
+
+class PriceListResponse(BaseModel):
+    items: List[PriceItem]
+    errors: List[ErrorItem] = []
+
+class PriceResponse(PriceItem):
+    pass
