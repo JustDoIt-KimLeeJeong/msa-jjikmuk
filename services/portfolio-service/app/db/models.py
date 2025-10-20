@@ -1,11 +1,8 @@
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-
-class Base(DeclarativeBase):
-    pass
-
 from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.dialects.postgresql import JSONB
 
 from sqlalchemy import (
     Numeric,
@@ -17,8 +14,6 @@ from sqlalchemy import (
     Identity,
     text,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy.dialects.postgresql import JSONB
 
 
 class Base(DeclarativeBase):
@@ -38,6 +33,17 @@ class Reservation(Base):
     updated_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
     )
+
+class Order(Base) : 
+    __tablename__ = "order"
+    order_id : Mapped[str] = mapped_column(String, primary_key=True)
+    user_id:  Mapped[str] = mapped_column(String, index=True, nullable=False)
+    symbol : Mapped[str] = mapped_column(String, nullable=False)
+    side : Mapped[str] = mapped_column(String, nullable=False)
+    reserved_balance: Mapped[Decimal] = mapped_column(Numeric(20, 6), nullable=False, server_default=text("0"))
+    reserved_qty:  Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False, server_default=text("0"))
+    updated_at:    Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+
 
 
 # balances
@@ -75,10 +81,10 @@ class Position(Base):
         TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
     )
 
-    __table_args__ = (
-        # PostgreSQL에서 정렬 지정 인덱스
-        Index("idx_positions_updated_at_desc", updated_at.desc()),
-    )
+    # __table_args__ = (
+    #     # PostgreSQL에서 정렬 지정 인덱스
+    #     Index("idx_positions_updated_at_desc", updated_at.desc()),
+    # )
 
 
 # processed_events (idempotency)
@@ -108,3 +114,5 @@ class PortfolioAudit(Base):
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
     )
+
+

@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import List
 
+
+# Web API 용
 @dataclass
 class Balance:
     available: int 
@@ -18,3 +20,4 @@ class Portfolio:
     user_id: int
     balances: Balance
     positions: List[Position] = field(default_factory=list)
+
