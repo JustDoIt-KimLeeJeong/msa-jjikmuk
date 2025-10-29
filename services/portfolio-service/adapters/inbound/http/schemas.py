@@ -9,3 +9,5 @@ class UserPosition(BaseModel) :
 class UserBalance(BaseModel) : 
     available : int
     reserved : int
+
+

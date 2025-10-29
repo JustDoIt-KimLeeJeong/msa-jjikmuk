@@ -115,6 +115,3 @@ def cancel_order(user_id : int, order_id : str, session :Session) :
             pass
 
 
-def place_order(session  : Session) : 
-    with session.begin()
-    pass

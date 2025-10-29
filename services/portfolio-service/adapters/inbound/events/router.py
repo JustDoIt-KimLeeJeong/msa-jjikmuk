@@ -14,3 +14,5 @@ async def run_consumer() :
     )
 
     return consumer
+
+

@@ -10,3 +10,4 @@ async def get_portfolio(user_id: int)   : # -> 출력 형태 잡아서 reference
     # DB 에서 데이터를 가져와야 함.
     portfolio = usecase.get_portfolio(user_id, Depends = get_session(), ) 
     return portfolio
+

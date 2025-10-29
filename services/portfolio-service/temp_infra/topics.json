@@ -1,0 +1,4 @@
+[
+  { "name": "portfolio.events", "partitions": 3, "replication": 1 },
+  { "name": "portfolio.dlq",    "partitions": 1, "replication": 1, "configs": { "retention.ms": "1209600000" } }
+]
