@@ -1,0 +1,92 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Auth API",
+    "version": "unversioned"
+  },
+  "paths": {
+    "/api/auth/signup": {
+      "post": {
+        "summary": "회원가입",
+        "description": "새 사용자를 등록하고 access_token을 발급합니다.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignUpRequest"
+              },
+              "example": {
+                "email": "user@example.com",
+                "pwd": "password123",
+                "name": "홍길동"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "회원가입 성공",
+            "headers": {
+              "Set-Cookie": {
+                "description": "access_token 쿠키 (HttpOnly, Secure, SameSite=Lax)",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignUpResponse"
+                },
+                "example": {
+                  "userId": "550e8400-e29b-41d4-a716-446655440000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "요청 유효성 검증 실패"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "SignUpRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "minLength": 2,
+            "description": "유효한 이메일 주소 (@ 포함)"
+          },
+          "pwd": {
+            "type": "string",
+            "minLength": 8,
+            "description": "8자 이상 비밀번호"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "description": "사용자 이름"
+          }
+        },
+        "required": ["email", "pwd", "name"]
+      },
+      "SignUpResponse": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": ["userId"]
+      }
+    }
+  }
+}

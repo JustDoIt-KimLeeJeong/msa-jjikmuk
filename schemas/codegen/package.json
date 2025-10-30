@@ -1,0 +1,14 @@
+{
+    "name": "@tools/codegen",
+    "private": true,
+    "scripts": {
+      "generate:ts": "sh ./generate-typescript.sh",
+      "generate:python": "sh ./generate-python.sh",
+      "generate:java": "sh ./generate-java.sh",
+      "generate:all": "pnpm run generate:ts && pnpm run generate:python && pnpm run generate:java"
+    },
+    "devDependencies": {
+      "@openapitools/openapi-generator-cli": "^7.6.0"
+    }
+  }
+  
