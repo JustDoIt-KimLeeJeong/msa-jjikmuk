@@ -8,9 +8,9 @@ import {
   Logger,
 } from '@nestjs/common';
 import { FastifyReply } from 'fastify';
-import { AuthService } from './auth.service';
-import { SignupRequestDto } from './dto/signup-request.dto';
-import { LoginRequestDto } from './dto/login-request.dto';
+import { AuthService } from './user.service';
+import { SignupRequestDto } from './dtos/signup-request.dto';
+import { LoginRequestDto } from './dtos/login-request.dto';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Counter, Histogram } from 'prom-client';
 
