@@ -4,7 +4,7 @@ import {
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
-import * as cookie from '@fastify/cookie';
+import cookie from '@fastify/cookie';
 import { ValidationPipe } from '@nestjs/common';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
@@ -45,7 +45,7 @@ async function bootstrap() {
   );
 
   // Fastify 쿠키 플러그인 등록
-  await app.register(cookie);
+  await app.register(cookie as any);
 
   // 유효성 검사 파이프 등록
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
