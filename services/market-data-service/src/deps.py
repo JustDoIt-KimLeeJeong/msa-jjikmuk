@@ -13,18 +13,23 @@ from repositories import prices as prices_repo
 
 DATA_DIR = pathlib.Path(__file__).parent / "data"
 
+
 @asynccontextmanager
 async def lifespan(app):
-    app.state.settings = Settings
+    # 1) settings 인스턴스
+    app.state.settings = Settings()
 
     app.state.redis = create_redis(app.state.settings)
 
-    symbols = load_json(DATA_DIR/"symbols.json")
-    name_map = {s["symbol"]: s["name"] for s in symbols["symbols"]}
+    symbols_obj = load_json(DATA_DIR / "symbols.json")
+    app.state.symbols = symbols_obj
+    name_map = {s["symbol"]: s["name"] for s in symbols_obj.get("symbols", [])}
+    app.state.name_map = name_map
     symbols_repo.prime(name_map)
-
+    
+    # 4) prices 로드 → repo prime
     try:
-        prices = load_json(DATA_DIR/"prices.json")
+        prices = load_json(DATA_DIR / "prices.json")
     except FileNotFoundError:
         prices = {"last": {}, "chgPct": {}}
     prices_repo.prime(prices)
@@ -32,8 +37,14 @@ async def lifespan(app):
     try:
         yield
     finally:
-        await app.state.redis.close()
-
+        r = app.state.redis
+        # 비동기/동기 클라이언트 호환 종료
+        if hasattr(r, "aclose"):
+            await r.aclose()
+        elif hasattr(r, "close"):
+            res = r.close()
+            if hasattr(res, "__await__"):
+                await res
 
 def get_settings(request: Request) -> Settings:
     return request.app.state.settings

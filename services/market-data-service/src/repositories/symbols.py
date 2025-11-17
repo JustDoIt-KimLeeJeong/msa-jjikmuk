@@ -12,3 +12,6 @@ def get_name(symbol: str) -> Optional[str]:
 
 def snapshot() -> Dict[str, str]:
     return dict(_name_map)
+
+def get_all() -> dict[str, str]:          # ← 추가
+    return _name_map

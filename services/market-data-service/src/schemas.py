@@ -2,6 +2,8 @@ from typing import Literal, List, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
 
+Interval = Literal["1m","5m","1d","1w"]
+
 ###symbols
 class Rules(BaseModel):
     maxSymbols: int = 30
@@ -62,3 +64,19 @@ class QuoteResponse(QuoteItem):
 
 class QuotesStreamQuery(BaseModel):
     symbols: List[str]
+
+
+##candles
+class CandleItem(BaseModel):
+    ts : str
+    o : float
+    h : float
+    l : float
+    c : float
+    v : float
+
+class CandleResponse(BaseModel):
+    symbol : str
+    interval : Interval
+    items : List[CandleItem]
+    errors : Optional[list[dict]] = None

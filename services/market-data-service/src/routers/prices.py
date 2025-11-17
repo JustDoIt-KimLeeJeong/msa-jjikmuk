@@ -4,21 +4,23 @@ from typing import List
 import asyncio, json, random
 from schemas import PriceItem, PriceListResponse, PriceResponse, ErrorItem
 from utils.time import now_ms
+from repositories import symbols as symbols_repo, prices as prices_repo
 
 router = APIRouter(tags=["prices"])
 
 def _max_symbols(request: Request) -> int:
     return int(request.app.state.symbols["rules"].get("maxSymbols", 30))
 
-def _resolve_prices(request: Request, symbols: List[str]) -> PriceListResponse:
-    name_map = request.app.state.name_map
-    ps = request.app.state.price_state
-    last_map = ps.get("last", {})
-    chg_map = ps.get("chgPct", {})
 
+def _resolve_prices(request: Request, symbols: List[str]) -> PriceListResponse:
+    ps = prices_repo.get_state()
+    last_map = ps.get("last", {})
+    chg_map  = ps.get("chgPct", {})
     items, errors = [], []
     for sym in symbols:
-        name, last, chg = name_map.get(sym), last_map.get(sym), chg_map.get(sym)
+        name = symbols_repo.get_name(sym)
+        last = last_map.get(sym)
+        chg  = chg_map.get(sym)
         if name is None or last is None or chg is None:
             errors.append(ErrorItem(symbol=sym, code="SYMBOL_NOT_FOUND"))
             continue
