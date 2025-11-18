@@ -4,7 +4,7 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 import domain.errors as Error
 import datetime
-import query_fields as qf
+import adapters.outbound.db.query_fields as qf
 
 
 def search_order(user_id : int, order_id : str, symbol : str, side : str, session :Session) :

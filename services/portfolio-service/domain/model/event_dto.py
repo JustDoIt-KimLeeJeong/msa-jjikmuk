@@ -1,6 +1,9 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-# import datetime
+from datetime import datetime
 
+
+
+### inboundDTO
 
 # Base Class들
 class PurchaseSellEventEnvelope(BaseModel) : 
@@ -9,21 +12,9 @@ class PurchaseSellEventEnvelope(BaseModel) :
     order_id: str = Field(default=None, alias="orderId")
     user_id: int = Field(default=None, alias="userId")
 
-    @field_validator("event_id", "order_id", "user_id") 
-    def none_validation(cls, v) : 
-        if v == None :
-            raise ValueError("event/order/user id 는 None 일 수 없습니다")
-        
-    
-
 class InternalFailEventEnvelope(BaseModel) : 
     user_id : int
     reason_code : str
-
-    @field_validator("user_id") 
-    def none_validation(cls, v) : 
-        if v == None :
-            raise ValueError("user id 는 None 일 수 없습니다")
 
 
 # Base를 제외한 나머지
@@ -31,15 +22,12 @@ class InternalFailEventEnvelope(BaseModel) :
 class Order(PurchaseSellEventEnvelope) : 
     symbol: str
     qty : int
-    @field_validator("symbol", "qty") 
-    def none_validation(cls, v) : 
-        if v == None :
-            raise ValueError("symbol과 qty 는 None 일 수 없습니다")
     
     @field_validator("qty") 
     def qty_validation(cls, v) : 
         if v <0 :
             raise ValueError("qty 는 0 이하 일 수 없습니다")
+        return v
 
 class Reject(PurchaseSellEventEnvelope) : 
     reason_code : str
@@ -50,5 +38,32 @@ class PositionUpdateFail(InternalFailEventEnvelope) :
 
 class PriceSyncDegrade(InternalFailEventEnvelope) : 
     symbol : str 
+
+
+###OutboundDTO
+
+class OutboundEventEnvelop(BaseModel) : 
+    event_id : str
+    created_at : str
+    order_id : str
+    user_id : int
+    
+
+class OrderPlace(OutboundEventEnvelop) : 
+    symbol : str
+    qty : int
+
+class TradeExecuted(OutboundEventEnvelop) : 
+    trade_id : str
+    symbol : str
+    price : int
+    qty : int
+    order_id : str
+    fill_id : str
+    side : str
+    last_fill_qty : str
+    fill_price : int
+    fees : int
+    filled_at : datetime
 
 

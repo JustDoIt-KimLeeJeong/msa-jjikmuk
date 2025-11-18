@@ -11,7 +11,7 @@ def build_headers(event : str, correlation_id : str) -> list[Tuple[str, bytes]]:
     if event is None : 
         raise ValueError("event type cannot be None") 
     header: Dict[str, str] = {
-        "event-type": event,
+        "event_type": event,
         "correlation_id" : correlation_id
     }
     return [(k, v.encode("utf-8")) for k, v in header.items()]

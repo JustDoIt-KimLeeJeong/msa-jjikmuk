@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 # 전체 Settings
 
-class Settings(BaseSettings) :
+class Settings:
     # app 전체 
     APP_NAME : ClassVar[str] = "portfolio"
 
@@ -19,9 +19,6 @@ class Settings(BaseSettings) :
     PG_DB_NAME : str
     PG_PASSWORD : str
     PG_USER : str
-
-    
-
     # env
     model_config = SettingsConfigDict(env_file='.env',  extra="ignore")
 
@@ -43,8 +40,8 @@ def _in_container() -> bool:
 _DEFAULT_BOOTSTRAP = "kafka:9092" if _in_container() else "localhost:19092"
 
 @dataclass(frozen=True)
-class KafkaProducerConfig(BaseSettings):
-    bootstrap_servers: str = os.getenv("KAFKA_BOOTSTRAP_SERVERS", _DEFAULT_BOOTSTRAP)
+class KafkaProducerConfig:
+    # bootstrap_servers: str = os.getenv("KAFKA_BOOTSTRAP_SERVERS", _DEFAULT_BOOTSTRAP)
     client_id: str = os.getenv("KAFKA_CLIENT_ID", "portfolio-service")
     acks: str = os.getenv("KAFKA_ACKS", "all")                   # all, 1, 0
     linger_ms: int = int(os.getenv("KAFKA_LINGER_MS", "5"))      # 배치 지연
@@ -58,8 +55,8 @@ class KafkaProducerConfig(BaseSettings):
 
     # 
 @dataclass(frozen=True)
-class KafkaConsumerConfig(BaseSettings):
-    bootstrap_servers: str = os.getenv("KAFKA_BOOTSTRAP_SERVERS", _DEFAULT_BOOTSTRAP)
+class KafkaConsumerConfig:
+    # bootstrap_servers: str = os.getenv("KAFKA_BOOTSTRAP_SERVERS", _DEFAULT_BOOTSTRAP)
     group_id: str = os.getenv("KAFKA_CONSUMER_GROUP", "pf-dev")
     auto_offset_reset: str = os.getenv("KAFKA_AUTO_OFFSET_RESET", "earliest")  # earliest|latest
     enable_auto_commit: bool = os.getenv("KAFKA_ENABLE_AUTO_COMMIT", "true").lower() == "true"
@@ -68,6 +65,7 @@ class KafkaConsumerConfig(BaseSettings):
     session_timeout_ms: int = int(os.getenv("KAFKA_SESSION_TIMEOUT_MS", "10000"))
     heartbeat_interval_ms: int = int(os.getenv("KAFKA_HEARTBEAT_INTERVAL_MS", "3000"))
     poll_timeout_ms: int = int(os.getenv("KAFKA_POLL_TIMEOUT_MS", "1000"))
+    fetch_max_bytes: ClassVar[int] = 25 * 1024 * 1024
     # 보안 설정(필요 시)
     security_protocol: str = os.getenv("KAFKA_SECURITY_PROTOCOL", "PLAINTEXT")
     sasl_mechanism: str | None = os.getenv("KAFKA_SASL_MECHANISM") or None
@@ -75,16 +73,17 @@ class KafkaConsumerConfig(BaseSettings):
     sasl_password: str | None = os.getenv("KAFKA_SASL_PASSWORD") or None
 
 @dataclass(frozen=True)
-class KafkaTopics(BaseSettings):
+class KafkaTopics:
     portfolio: str = "portfolio.events"
     dlq: str = "portfolio.dlq"
 
 @dataclass(frozen=True)
-class Kafka_Settings(BaseSettings):
+class Kafka_Settings:
     env: str = os.getenv("APP_ENV", "local")
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
+    bootstrap_servers: str = _DEFAULT_BOOTSTRAP
     kafka_producer: KafkaProducerConfig = KafkaProducerConfig()
     kafka_consumer: KafkaConsumerConfig = KafkaConsumerConfig()
     topics: KafkaTopics = KafkaTopics()
 # 모듈 import 시 한 번만 로드해서 전역으로 재사용
-settings = Settings()
+settings = Kafka_Settings()
