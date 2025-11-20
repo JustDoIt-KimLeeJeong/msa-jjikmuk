@@ -6,9 +6,9 @@
 
     "database.hostname": "postgres",
     "database.port": "5432",
-    "database.user": "order_user",
-    "database.password": "order_pass",
-    "database.dbname": "order_db",
+    "database.user": "${POSTGRES_USER}",
+    "database.password": "${POSTGRES_PASSWORD}",
+    "database.dbname": "${POSTGRES_DB}",
     "topic.prefix": "order_server",
 
     "table.include.list": "public.outbox_events",

@@ -38,7 +38,7 @@ echo ""
 CONNECTOR_NAME=$(jq -r '.name' "$CONNECTOR_CONFIG")
 echo "Checking connector: $CONNECTOR_NAME"
 
-if curl -s http://kafka-connect:8083/connectors 2>/dev/null | grep -q "\"$CONNECTOR_NAME\""; then
+if curl -s http://kafka-connect:8083/connectors 2>/dev/null | jq -e ". | index(\"$CONNECTOR_NAME\")" > /dev/null; then
   echo "✓ Already exists"
   echo ""
   echo "Current status:"
@@ -50,10 +50,7 @@ echo "✗ Not found. Creating..."
 echo ""
 
 # 환경변수 치환
-CONFIG_JSON=$(cat "$CONNECTOR_CONFIG" | \
-  sed "s/\${POSTGRES_USER}/$POSTGRES_USER/g" | \
-  sed "s/\${POSTGRES_PASSWORD}/$POSTGRES_PASSWORD/g" | \
-  sed "s/\${POSTGRES_DB}/$POSTGRES_DB/g")
+CONFIG_JSON=$(envsubst < "$CONNECTOR_CONFIG")
 
 # Connector 생성
 echo "Creating connector..."
