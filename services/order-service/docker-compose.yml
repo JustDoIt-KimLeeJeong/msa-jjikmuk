@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL
   postgres:
@@ -9,12 +7,25 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is not set in .env file}
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is not set in .env file}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set in .env file}
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical" # CDC 설정
+      - "-c"
+      - "max_replication_slots=4" # Debizum 슬롯
+      - "-c"
+      - "max_wal_senders=4" # WAL 전송자
     ports:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
       - order-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Kafka (KRaft 모드)
   kafka:
@@ -41,6 +52,63 @@ services:
       CLUSTER_ID: ${KAFKA_CLUSTER_ID:?KAFKA_CLUSTER_ID is not set in .env file}
     volumes:
       - kafka-data:/var/lib/kafka/data
+    networks:
+      - order-network
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # Kafka Connect + Debezium
+  kafka-connect:
+    image: debezium/connect:2.7.3.Final
+    container_name: order-kafka-connect
+    ports:
+      - "8083:8083"
+    environment:
+      BOOTSTRAP_SERVERS: kafka:29092
+      GROUP_ID: order-connect-cluster
+      CONFIG_STORAGE_TOPIC: connect-configs
+      OFFSET_STORAGE_TOPIC: connect-offsets
+      STATUS_STORAGE_TOPIC: connect-status
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      # 스키마 제거 (간단한 JSON)
+      KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - order-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8083/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Kafka UI (모니터링)
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: order-kafka-ui
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: order-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: debezium
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://kafka-connect:8083
+    depends_on:
+      kafka:
+        condition: service_healthy
     networks:
       - order-network
 
