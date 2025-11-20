@@ -35,14 +35,14 @@ public class OrderController {
      */
     @PostMapping
     public ResponseEntity<OrderResponse> createOrder(
-            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-User-Id") String userId,
             @RequestHeader("X-Correlation-Id") String correlationId,
             @Valid @RequestBody CreateOrderRequest request
             ) {
         log.info("주문 생성 요청 - correlationId: {}, userId: {}, symbol: {}, side: {}, type: {}",
                 correlationId, userId, request.getSymbol(), request.getSide(), request.getType());
 
-        OrderResponse response = orderService.createOrder(userId, request, correlationId);
+        OrderResponse response = orderService.createOrder(userId, request);
 
         log.info("주문 생성 완료 - orderId: {}, correlationId: {}", response.getOrderId(), correlationId);
 
@@ -59,14 +59,14 @@ public class OrderController {
      */
     @DeleteMapping("/{orderId}")
     public ResponseEntity<OrderResponse> cancelOrder(
-            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-User-Id") String userId,
             @RequestHeader("X-Correlation-Id") String correlationId,
             @PathVariable Long orderId
     ) {
         log.info("주문 취소 요청 - correlationId: {}, userId: {}, orderId: {}",
                 correlationId, userId, orderId);
 
-        OrderResponse response = orderService.cancelOrder(userId, orderId, correlationId);
+        OrderResponse response = orderService.cancelOrder(userId, orderId);
 
         log.info("주문 취소 완료 - orderId: {}, correlationId: {}", orderId, correlationId);
         return ResponseEntity.ok(response);
@@ -82,14 +82,14 @@ public class OrderController {
      */
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderResponse> getOrder(
-            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-User-Id") String userId,
             @RequestHeader("X-Correlation-Id") String correlationId,
             @PathVariable Long orderId
     ) {
         log.debug("주문 단건 조회 요청 - correlationId: {}, userId: {}, orderId: {}",
                 correlationId, userId, orderId);
 
-        OrderResponse response = orderService.getOrder(userId, orderId, correlationId);
+        OrderResponse response = orderService.getOrder(userId, orderId);
         return ResponseEntity.ok(response);
     }
 
@@ -105,7 +105,7 @@ public class OrderController {
      */
     @GetMapping
     public ResponseEntity<PageResponse<OrderResponse>> getOrders(
-        @RequestHeader("X-User-Id") Long userId,
+        @RequestHeader("X-User-Id") String userId,
         @RequestHeader("X-Correlation-Id") String correlationId,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size,
@@ -114,7 +114,7 @@ public class OrderController {
         log.debug("주문 목록 조회 요청 - correlationId: {}, userId: {}, page: {}, size: {}, status: {}",
                 correlationId, userId, page, size, status);
 
-        PageResponse<OrderResponse> response = orderService.getOrders(userId, page, size, status, correlationId);
+        PageResponse<OrderResponse> response = orderService.getOrders(userId, page, size, status);
         return ResponseEntity.ok(response);
     }
 

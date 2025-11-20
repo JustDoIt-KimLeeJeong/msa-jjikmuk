@@ -22,20 +22,6 @@ import java.math.BigDecimal;
 public class CreateOrderRequest {
 
     /**
-     * 분산 추적 ID(Correlation ID)
-     * - BFF에서 HTTP Header로 전달(X-Correlation-Id)
-     * - 형식: PREFIX_UUID_v7 (예: ORD_018e8c7a-9c5e-7000-8000-123456789abc)
-     * - 전체 요청 플로우 추적용
-     * - 로그/이벤트에 포함하여 디버깅 용이
-     */
-    @NotBlank(message = "Correlation ID는 필수입니다.")
-    @Pattern(
-            regexp = "^[A-Z]{3}_[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
-            message = "Correlation ID 형식이 올바르지 않습니다. (예: ORD_018e8c7a-9c5e-7000-8000-123456789abc)"
-    )
-    private String correlationId;
-
-    /**
      * 클라이언트 주문 ID (멱등성 보장용)
      * - 프론트엔드에서 생성 (숫자, 타임스탬프 등)
      *      * - 중복 주문 방지 (userId + clientOrderId 조합)
@@ -91,23 +77,9 @@ public class CreateOrderRequest {
     // === 비즈니스 검증 메서드 ===
 
     /**
-     * 시장가 주문 검증
-     * - 시장가는 price가 null이어야 함
-     */
-    public boolean isValidMarketOrder() {
-        return type == OrderType.MARKET && price == null;
-    }
-
-    /**
-     * 지정가 주문 검증
-     * - 지정가는 price가 필수
-     */
-    public boolean isValidLimitOrder() {
-        return type == OrderType.LIMIT && price != null && price > 0;
-    }
-
-    /**
-     * 전체 검증 (컨트롤러 레벨 추가 검증용)
+     * 주문 유형별 가격 검증
+     * - 시장가: price가 null이어야 함
+     * - 지정가: price가 필수 (양수)
      */
     public void validateOrderTypeAndPrice() {
         if (type == OrderType.MARKET && price != null) {

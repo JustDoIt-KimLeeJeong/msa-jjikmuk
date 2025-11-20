@@ -36,7 +36,7 @@ public class Order extends BaseTimeEntity {
     private Long id;
 
     @Column(nullable = false)
-    private Long userId;
+    private String userId;
 
     /**
      * 클라이언트 주문 ID (멱등성 보장용)
@@ -167,6 +167,40 @@ public class Order extends BaseTimeEntity {
         }
 
         return true;
+    }
+
+    /**
+     * 주문 취소 가능 여부
+     * PENDING, ACCEPTED 상태만 취소 가능
+     */
+    public boolean isCancellable() {
+        return this.status == OrderStatus.PENDING
+                || this.status == OrderStatus.ACCEPTED;
+    }
+
+    /**
+     * 주문 취소
+     */
+    public void cancel() {
+        if (!isCancellable()) {
+            throw new IllegalStateException(
+                    String.format("Cannot cancel order in status: %s", this.status)
+            );
+        }
+        this.status = OrderStatus.CANCELLED;
+    }
+
+    /**
+     * 주문 만료
+     */
+    public void expire() {
+        if (this.status != OrderStatus.PENDING
+                && this.status != OrderStatus.ACCEPTED) {
+            throw new IllegalStateException(
+                    String.format("Cannot expire order in status: %s", this.status)
+            );
+        }
+        this.status = OrderStatus.EXPIRED;
     }
 
 

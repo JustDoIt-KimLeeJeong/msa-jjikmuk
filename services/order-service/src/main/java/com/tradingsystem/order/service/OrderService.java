@@ -4,13 +4,14 @@ import com.tradingsystem.order.domain.*;
 import com.tradingsystem.order.dto.request.CreateOrderRequest;
 import com.tradingsystem.order.dto.response.OrderResponse;
 import com.tradingsystem.order.dto.response.PageResponse;
+import com.tradingsystem.order.event.EventPublisher;
+import com.tradingsystem.order.event.dto.OrderCancelledData;
+import com.tradingsystem.order.event.dto.OrderPlacedData;
 import com.tradingsystem.order.exception.DuplicateOrderException;
+import com.tradingsystem.order.exception.InvalidOrderStatusException;
 import com.tradingsystem.order.exception.OrderNotFoundException;
+import com.tradingsystem.order.exception.UnauthorizedOrderAccessException;
 import com.tradingsystem.order.repository.OrderRepository;
-import com.tradingsystem.order.repository.OutboxEventRepository;
-import com.tradingsystem.order.util.CorrelationIdValidator;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -22,12 +23,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 /**
  * 주문 서비스
  * - 주문 생성/취소/조회 비즈니스 로직 처리
- * - Outbox 패턴을 통한 이벤트 발행 (CDC)
+ * - EventPublisher를 통한 Outbox 패턴 이벤트 발행
  * - 시장가/지정가 구분 처리
  */
 @Slf4j
@@ -37,113 +37,159 @@ import java.util.UUID;
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    private final OutboxEventRepository outboxEventRepository;
-    private final ObjectMapper objectMapper;
+    private final EventPublisher eventPublisher;
 
-    private static final int LIMIT_ORDER_EXPIRE_HOURS = 24; // 지정가 주문 만료 시간
+    private static final int LIMIT_ORDER_EXPIRY_HOURS = 24;
 
     /**
      * 주문 생성
-     * - 중복 주문 검증 (clientOrderId 기반)
-     * - 시장가/지정가 구분 처리
-     * - Order + OutboxEvent 동시 저장 (트랜잭션)
      *
-     * @param userId 사용자 ID
+     * 플로우:
+     * 1. clientOrderId 중복 체크
+     * 2. Order 엔티티 생성 및 저장
+     * 3. OrderPlaced 이벤트 발행 (EventPublisher)
+     * 4. 트랜잭션 커밋 → CDC가 Kafka로 자동 발행
+     *
+     * @param userId BFF에서 JWT 토큰으로부터 추출한 사용자 ID
      * @param request 주문 생성 요청
      * @return 생성된 주문 정보
-     * @throws DuplicateOrderException 중복 주문 시
+     * @throws DuplicateOrderException clientOrderId 중복 시
      */
     @Transactional
-    public OrderResponse createOrder(Long userId, CreateOrderRequest request, String correlationId) {
-        log.info("주문 생성 시작 - userId: {}, clientOrderId: {}, symbol: {}",
-                userId, request.getClientOrderId(), request.getSymbol());
+    public OrderResponse createOrder(String userId, CreateOrderRequest request) {
+        log.info("주문 생성 시작: userId={}, clientOrderId={}, symbol={}, side={}, type={}",
+                userId, request.getClientOrderId(), request.getSymbol(),
+                request.getSide(), request.getType());
 
-        // 1. correlationId 검증
-        CorrelationIdValidator.validate(correlationId);
+        try {
+            // 1. 주문 유형별 가격 검증
+            request.validateOrderTypeAndPrice();
 
-        // 2. 주문 유형별 가격 검증 추가
-        request.validateOrderTypeAndPrice();
+            // 2. 중복 주문 체크
+            validateDuplicateOrder(userId, request.getClientOrderId());
 
-        // 3. 중복 주문 체크
-        validateDuplicateOrder(userId, request.getClientOrderId());
+            // 3. Order 엔티티 생성
+            Order order = buildOrder(userId, request);
 
-        // 4. 주문 생성
-        Order order = buildOrder(userId, request);
-        Order savedOrder = orderRepository.save(order);
+            // 4. DB 저장
+            Order savedOrder = orderRepository.save(order);
+            log.debug("주문 저장 완료: orderId={}", savedOrder.getId());
 
-        log.info("주문 생성 완료 - orderId: {}, status: {}", savedOrder.getId(), savedOrder.getStatus());
+            // 5. 이벤트 데이터 생성
+            OrderPlacedData eventData = buildOrderPlacedData(savedOrder);
 
-        // 5. Outbox 이벤트 생성 (같은 트랜잭션)
-        createOutboxEvent(savedOrder, "OrderPlaced", correlationId);
+            // 6. Outbox에 이벤트 발행 (같은 트랜잭션)
+            // EventPublisher가 MDC에서 correlationId 자동 추출
+            eventPublisher.publish("order.placed", savedOrder.getId(), eventData);
 
-        return OrderResponse.from(savedOrder, correlationId);
+            log.info("주문 생성 완료: orderId={}, status={}",
+                    savedOrder.getId(), savedOrder.getStatus());
+
+            return OrderResponse.from(savedOrder);
+
+        } catch (DuplicateOrderException e) {
+            log.warn("중복 주문 시도: userId={}, clientOrderId={}",
+                    userId, request.getClientOrderId());
+            throw e;
+        } catch (IllegalArgumentException e) {
+            log.warn("주문 검증 실패: userId={}, error={}", userId, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("주문 생성 실패: userId={}, symbol={}",
+                    userId, request.getSymbol(), e);
+            throw new RuntimeException("주문 생성 중 오류가 발생했습니다.", e);
+        }
     }
 
     /**
      * 주문 취소
-     * - 주문 소유권 검증
-     * - PENDING/ACCEPTED 상태만 취소 가능
-     * - OrderCancelled 이벤트 발행
      *
-     * @param userId 사용자 ID
+     * 플로우:
+     * 1. 주문 존재 및 소유권 확인
+     * 2. 취소 가능 상태 확인 (PENDING, ACCEPTED만)
+     * 3. 주문 상태를 CANCELLED로 변경
+     * 4. OrderCancelled 이벤트 발행
+     * 5. Portfolio가 예약 자금/주식 해제
+     *
+     * @param userId BFF에서 전달받은 사용자 ID
      * @param orderId 취소할 주문 ID
      * @return 취소된 주문 정보
      * @throws OrderNotFoundException 주문을 찾을 수 없을 때
+     * @throws UnauthorizedOrderAccessException 주문 소유자가 아닐 때
+     * @throws InvalidOrderStatusException 취소 불가능한 상태일 때
      */
     @Transactional
-    public OrderResponse cancelOrder(Long userId, Long orderId, String correlationId) {
-        log.info("주문 취소 시작 - userId: {}, orderId: {}", userId, orderId);
+    public OrderResponse cancelOrder(String userId, Long orderId) {
+        log.info("주문 취소 시작: userId={}, orderId={}", userId, orderId);
 
-        // 1. 주문 조회 및 소유권 검증
-        Order order = findOrderByIdAndUserId(orderId, userId);
+        try {
+            // 1. 주문 조회 및 소유권 검증
+            Order order = findOrderByIdAndUserId(orderId, userId);
 
-        // 2. 취소 가능 상태 검증
-        validateCancellable(order);
+            // 2. 취소 가능 상태 검증
+            if (!order.isCancellable()) {
+                throw new InvalidOrderStatusException(
+                        String.format("취소할 수 없는 주문 상태입니다. orderId=%d, status=%s",
+                                orderId, order.getStatus())
+                );
+            }
 
-        // 3. 상태 변경
-        order.updateStatus(OrderStatus.CANCELLED);
+            // 3. 주문 취소 처리
+            order.cancel();
+            log.debug("주문 상태 변경: orderId={}, status=CANCELLED", orderId);
 
-        log.info("주문 취소 완료 - orderId: {}, status: {}", order.getId(), order.getStatus());
+            // 4. 이벤트 데이터 생성
+            OrderCancelledData eventData = buildOrderCancelledData(order);
 
-        // 4. Outbox 이벤트 생성
-        createOutboxEvent(order, "OrderCancelled", correlationId);
+            // 5. Outbox에 이벤트 발행
+            eventPublisher.publish("order.cancelled", order.getId(), eventData);
 
-        return OrderResponse.from(order, correlationId);
+            log.info("주문 취소 완료: orderId={}", orderId);
+
+            return OrderResponse.from(order);
+
+        } catch (OrderNotFoundException | UnauthorizedOrderAccessException |
+                 InvalidOrderStatusException e) {
+            log.warn("주문 취소 실패: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("주문 취소 중 예상치 못한 오류: orderId={}", orderId, e);
+            throw new RuntimeException("주문 취소 중 오류가 발생했습니다.", e);
+        }
     }
 
     /**
      * 주문 단건 조회
-     * - 주문 소유권 검증
      *
-     * @param userId 사용자 ID
+     * @param userId 사용자 ID (소유권 확인용)
      * @param orderId 조회할 주문 ID
      * @return 주문 상세 정보
      * @throws OrderNotFoundException 주문을 찾을 수 없을 때
+     * @throws UnauthorizedOrderAccessException 주문 소유자가 아닐 때
      */
-    public OrderResponse getOrder(Long userId, Long orderId, String correlationId) {
-        log.debug("주문 단건 조회 - userId: {}, orderId: {}", userId, orderId);
+    public OrderResponse getOrder(String userId, Long orderId) {
+        log.debug("주문 단건 조회: userId={}, orderId={}", userId, orderId);
 
         Order order = findOrderByIdAndUserId(orderId, userId);
-        return OrderResponse.from(order, correlationId);
+        return OrderResponse.from(order);
     }
 
     /**
      * 주문 목록 조회 (페이징)
-     * - 사용자의 주문만 조회
-     * - 상태별 필터링 (선택)
-     * - 최신순 정렬
      *
      * @param userId 사용자 ID
-     * @param page 페이지 번호
+     * @param page 페이지 번호 (0부터 시작)
      * @param size 페이지 크기
      * @param status 주문 상태 필터 (선택)
      * @return 페이징된 주문 목록
      */
-    public PageResponse<OrderResponse> getOrders(Long userId, int page, int size, String status, String correlationId) {
-        log.debug("주문 목록 조회 - userId: {}, page: {}, size: {}, status: {}",
+    public PageResponse<OrderResponse> getOrders(
+            String userId, int page, int size, String status) {
+        log.debug("주문 목록 조회: userId={}, page={}, size={}, status={}",
                 userId, page, size, status);
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(
+                page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         Page<Order> orderPage;
         if (status != null && !status.isBlank()) {
@@ -153,30 +199,28 @@ public class OrderService {
             orderPage = orderRepository.findByUserId(userId, pageable);
         }
 
-        Page<OrderResponse> responsePage = orderPage.map(order -> OrderResponse.from(order, correlationId));
+        Page<OrderResponse> responsePage = orderPage.map(OrderResponse::from);
         return PageResponse.from(responsePage);
     }
 
-    // ===== Private Helper Methods =====
+    // ========== Private Helper Methods ==========
 
     /**
      * 중복 주문 검증
      */
-    private void validateDuplicateOrder(Long userId, String clientOrderId) {
+    private void validateDuplicateOrder(String userId, String clientOrderId) {
         if (orderRepository.existsByUserIdAndClientOrderId(userId, clientOrderId)) {
-            log.warn("중복 주문 감지 - userId: {}, clientOrderId: {}", userId, clientOrderId);
             throw new DuplicateOrderException(
-                    String.format("이미 존재하는 주문입니다. clientOrderId: %s", clientOrderId)
+                    String.format("이미 존재하는 주문입니다. clientOrderId=%s", clientOrderId)
             );
         }
     }
 
     /**
-     * 주문 엔티티 생성
+     * Order 엔티티 생성
      */
-    private Order buildOrder(Long userId, CreateOrderRequest request) {
+    private Order buildOrder(String userId, CreateOrderRequest request) {
         OrderType type = request.getType();
-        OrderSide side = request.getSide();
 
         // 지정가는 price 필수
         BigDecimal price = null;
@@ -187,14 +231,14 @@ public class OrderService {
         // 지정가 주문만 만료 시간 설정 (24시간)
         LocalDateTime expiresAt = null;
         if (type == OrderType.LIMIT) {
-            expiresAt = LocalDateTime.now().plusHours(LIMIT_ORDER_EXPIRE_HOURS);
+            expiresAt = LocalDateTime.now().plusHours(LIMIT_ORDER_EXPIRY_HOURS);
         }
 
         return Order.builder()
                 .userId(userId)
                 .clientOrderId(request.getClientOrderId())
                 .symbol(request.getSymbol())
-                .side(side)
+                .side(request.getSide())
                 .type(type)
                 .price(price)
                 .quantity(request.getQuantity())
@@ -205,94 +249,50 @@ public class OrderService {
     }
 
     /**
-     * Outbox 이벤트 생성
-     * - Order와 같은 트랜잭션에서 저장
-     * - CDC가 자동으로 Kafka에 발행
+     * OrderPlacedData 이벤트 데이터 생성
      */
-    private void createOutboxEvent(Order order, String eventType, String correlationId) {
-        try {
-            String payload = objectMapper.writeValueAsString(
-                    OrderEventPayload.builder()
-                            .orderId(order.getId())
-                            .userId(order.getUserId())
-                            .clientOrderId(order.getClientOrderId())
-                            .symbol(order.getSymbol())
-                            .side(order.getSide().name())
-                            .type(order.getType().name())
-                            .price(order.getPrice())
-                            .quantity(order.getQuantity())
-                            .status(order.getStatus().name())
-                            .correlationId(correlationId)
-                            .build()
-            );
+    private OrderPlacedData buildOrderPlacedData(Order order) {
+        return OrderPlacedData.builder()
+                .orderId(order.getId())
+                .userId(order.getUserId())
+                .symbol(order.getSymbol())
+                .side(order.getSide().name())
+                .orderType(order.getType().name())
+                .quantity(order.getQuantity())
+                .price(order.getPrice())
+                .createdAt(order.getCreatedAt())
+                .expiresAt(order.getExpiresAt())
+                .build();
+    }
 
-            OutboxEvent outboxEvent = OutboxEvent.builder()
-                    .eventId(UUID.randomUUID().toString())
-                    .eventType(eventType)
-                    .aggregateId(order.getId())
-                    .payload(payload)
-                    .correlationId(correlationId)
-                    .published(false)
-                    .build();
-
-            outboxEventRepository.save(outboxEvent);
-
-            log.info("Outbox 이벤트 생성 - eventType: {}, orderId: {}, eventId: {}",
-                    eventType, order.getId(), outboxEvent.getEventId());
-
-        } catch (JsonProcessingException e) {
-            log.error("Outbox 이벤트 직렬화 실패 - orderId: {}", order.getId(), e);
-            throw new RuntimeException("이벤트 생성 중 오류가 발생했습니다.", e);
-        }
+    /**
+     * OrderCancelledData 이벤트 데이터 생성
+     */
+    private OrderCancelledData buildOrderCancelledData(Order order) {
+        return OrderCancelledData.builder()
+                .orderId(order.getId())
+                .userId(order.getUserId())
+                .symbol(order.getSymbol())
+                .side(order.getSide().name())
+                .orderType(order.getType().name())
+                .quantity(order.getQuantity())
+                .filledQuantity(order.getFilledQuantity())
+                .cancelReason("USER_REQUESTED")
+                .cancelledAt(LocalDateTime.now())
+                .build();
     }
 
     /**
      * 주문 조회 및 소유권 검증
      */
-    private Order findOrderByIdAndUserId(Long orderId, Long userId) {
+    private Order findOrderByIdAndUserId(Long orderId, String userId) {
         return orderRepository.findByIdAndUserId(orderId, userId)
                 .orElseThrow(() -> {
-                    log.warn("주문을 찾을 수 없음 - orderId: {}, userId: {}", orderId, userId);
+                    log.warn("주문을 찾을 수 없거나 권한이 없음: orderId={}, userId={}",
+                            orderId, userId);
                     return new OrderNotFoundException(
-                            String.format("주문을 찾을 수 없습니다. orderId: %d", orderId)
+                            String.format("주문을 찾을 수 없습니다. orderId=%d", orderId)
                     );
                 });
-    }
-
-    /**
-     * 취소 가능 상태 검증
-     */
-    private void validateCancellable(Order order) {
-        if (order.getStatus() != OrderStatus.PENDING &&
-                order.getStatus() != OrderStatus.ACCEPTED) {
-            throw new IllegalStateException(
-                    String.format("취소할 수 없는 주문 상태입니다. status: %s", order.getStatus())
-            );
-        }
-    }
-
-    /**
-     * correlationId 생성 (취소/만료 등 내부 이벤트용)
-     */
-    private String generateCorrelationId(String prefix) {
-        return String.format("%s_%s", prefix, UUID.randomUUID().toString());
-    }
-
-    /**
-     * 이벤트 페이로드 DTO
-     */
-    @lombok.Builder
-    @lombok.Getter
-    private static class OrderEventPayload {
-        private Long orderId;
-        private Long userId;
-        private String clientOrderId;
-        private String symbol;
-        private String side;
-        private String type;
-        private BigDecimal price;
-        private Integer quantity;
-        private String status;
-        private String correlationId;
     }
 }

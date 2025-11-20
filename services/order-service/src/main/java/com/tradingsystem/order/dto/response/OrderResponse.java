@@ -132,6 +132,13 @@ public class OrderResponse {
                 .build();
     }
 
+    // 오버로딩 메서드 추가
+    public static OrderResponse from(Order order) {
+        String correlationId = org.slf4j.MDC.get("correlationId");
+        return from(order, correlationId);
+    }
+
+
     // === 편의 메서드 ===
 
     /**

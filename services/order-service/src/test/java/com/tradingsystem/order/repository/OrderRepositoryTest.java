@@ -37,7 +37,7 @@ class OrderRepositoryTest {
     void setUp() {
         // 한국 주식 기준: 005930 (삼성전자) 및 정수 가격 사용
         sampleOrder = Order.builder()
-                .userId(1L)
+                .userId("1L")
                 .symbol("005930")
                 .side(OrderSide.BUY)
                 .type(OrderType.LIMIT)
@@ -74,7 +74,7 @@ class OrderRepositoryTest {
 
         // when
         Optional<Order> found = orderRepository
-                .findByUserIdAndClientOrderId(1L, "CLIENT_ORDER_001");
+                .findByUserIdAndClientOrderId("1L", "CLIENT_ORDER_001");
 
         // then
         assertThat(found).isPresent();
@@ -90,7 +90,7 @@ class OrderRepositoryTest {
 
         // 000660 (SK하이닉스) 주문 - 나중에 저장 (최신)
         Order secondOrder = Order.builder()
-                .userId(1L)
+                .userId("1L")
                 .symbol("000660")
                 .side(OrderSide.SELL)
                 .type(OrderType.MARKET)
@@ -102,7 +102,7 @@ class OrderRepositoryTest {
         orderRepository.save(secondOrder); // 나중에 저장됨
 
         // when
-        List<Order> orders = orderRepository.findByUserIdOrderByCreatedAtDesc(1L);
+        List<Order> orders = orderRepository.findByUserIdOrderByCreatedAtDesc("1L");
 
         // then
         assertThat(orders).hasSize(2);
@@ -116,7 +116,7 @@ class OrderRepositoryTest {
         // given
         // 035720 (카카오) 주문 - FILLED 상태
         Order filledOrder = Order.builder()
-                .userId(1L)
+                .userId("1L")
                 .symbol("035720")
                 .side(OrderSide.BUY)
                 .type(OrderType.MARKET)
@@ -130,8 +130,8 @@ class OrderRepositoryTest {
         orderRepository.save(sampleOrder);
 
         // when
-        List<Order> pendingOrders = orderRepository.findByUserIdAndStatus(1L, OrderStatus.PENDING);
-        List<Order> filledOrders = orderRepository.findByUserIdAndStatus(1L, OrderStatus.FILLED); // 👈 FILLED 상태로 조회
+        List<Order> pendingOrders = orderRepository.findByUserIdAndStatus("1L", OrderStatus.PENDING);
+        List<Order> filledOrders = orderRepository.findByUserIdAndStatus("1L", OrderStatus.FILLED); // 👈 FILLED 상태로 조회
 
         // then
         assertThat(pendingOrders).hasSize(1);
@@ -146,7 +146,7 @@ class OrderRepositoryTest {
     void testFindByStatusReserved() {
         // given
         Order reservedOrder = Order.builder()
-                .userId(1L)
+                .userId("1L")
                 .symbol("005930")
                 .side(OrderSide.BUY)
                 .type(OrderType.MARKET)
@@ -171,7 +171,7 @@ class OrderRepositoryTest {
         // given
         // 만료 시간이 현재 시간보다 이전인 주문 (만료 대상)
         Order expiredOrder = Order.builder()
-                .userId(1L)
+                .userId("1L")
                 .symbol("005930")
                 .side(OrderSide.BUY)
                 .type(OrderType.LIMIT)
@@ -201,7 +201,7 @@ class OrderRepositoryTest {
         // given
         // 005930 (삼성전자) - REJECTED 상태 (비활성)
         Order rejectedOrder = Order.builder()
-                .userId(2L)
+                .userId("2L")
                 .symbol("005930") // 동일 종목
                 .side(OrderSide.SELL)
                 .type(OrderType.LIMIT)

@@ -21,25 +21,25 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * - OrderService.getOrder()에서 사용
      * - OrderService.cancelOrder()에서 사용
      */
-    Optional<Order> findByIdAndUserId(Long id, Long userId);
+    Optional<Order> findByIdAndUserId(Long id, String userId);
 
     /**
      * 중복 주문 존재 여부 체크 (멱등성 보장)
      * - OrderService.createOrder()에서 사용
      */
-    boolean existsByUserIdAndClientOrderId(Long userId, String clientOrderId);
+    boolean existsByUserIdAndClientOrderId(String userId, String clientOrderId);
 
     /**
      * 사용자별 주문 목록 조회 (페이징)
      * - OrderService.getOrders()에서 사용
      */
-    Page<Order> findByUserId(Long userId, Pageable pageable);
+    Page<Order> findByUserId(String userId, Pageable pageable);
 
     /**
      * 사용자 + 상태별 주문 목록 조회 (페이징)
      * - OrderService.getOrders()에서 사용
      */
-    Page<Order> findByUserIdAndStatus(Long userId, OrderStatus status, Pageable pageable);
+    Page<Order> findByUserIdAndStatus(String userId, OrderStatus status, Pageable pageable);
 
 
 
@@ -47,17 +47,17 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     /**
      * 사용자별 주문 조회 (최신순)
      */
-    List<Order> findByUserIdOrderByCreatedAtDesc(Long userId);
+    List<Order> findByUserIdOrderByCreatedAtDesc(String userId);
 
     /**
      * 사용자 + 상태별 주문 조회
      */
-    List<Order> findByUserIdAndStatus(Long userId, OrderStatus status);
+    List<Order> findByUserIdAndStatus(String userId, OrderStatus status);
 
     /**
      * clientOrderId 기반 중복 체크 (멱등성 보장)
      */
-    Optional<Order> findByUserIdAndClientOrderId(Long userId, String clientOrderId);
+    Optional<Order> findByUserIdAndClientOrderId(String userId, String clientOrderId);
 
     /**
      * 만료 대상 지정가 주문 조회
