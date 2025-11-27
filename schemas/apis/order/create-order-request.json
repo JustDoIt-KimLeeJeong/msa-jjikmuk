@@ -1,0 +1,47 @@
+{
+  "type": "object",
+  "required": ["correlationId", "clientOrderId", "symbol", "side", "type", "quantity"],
+  "properties": {
+    "correlationId": {
+      "type": "string",
+      "description": "요청 추적 ID",
+      "example": "ORD_018e8c7a-9c5e-7000-8000-000000000002"
+    },
+    "clientOrderId": {
+      "type": "string",
+      "description": "클라이언트 주문 ID (중복 불가)",
+      "example": "test-market-buy-002"
+    },
+    "symbol": {
+      "type": "string",
+      "pattern": "^[0-9]{6}$",
+      "description": "종목 코드 (6자리 숫자)",
+      "example": "005930"
+    },
+    "side": {
+      "type": "string",
+      "enum": ["BUY", "SELL"],
+      "description": "매수/매도 구분"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["MARKET", "LIMIT"],
+      "description": "주문 유형 (시장가/지정가)"
+    },
+    "price": {
+      "type": "number",
+      "format": "double",
+      "minimum": 0,
+      "exclusiveMinimum": true,
+      "description": "주문 가격 (지정가 주문 시 필수, 시장가 주문 시 불가)",
+      "example": 50000,
+      "nullable": true
+    },
+    "quantity": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "주문 수량 (최소 1주)",
+      "example": 10
+    }
+  }
+}

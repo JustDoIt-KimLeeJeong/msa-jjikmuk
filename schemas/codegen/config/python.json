@@ -1,0 +1,10 @@
+{
+  "generatorName": "python",
+  "inputSpec": "../../apis/user/openapi.json",
+  "outputDir": "../../generated/python/user",
+  "additionalProperties": {
+    "packageName": "msa_jjikmuk_user_api",
+    "projectName": "msa-jjikmuk-user-api",
+    "packageVersion": "1.0.0"
+  }
+}

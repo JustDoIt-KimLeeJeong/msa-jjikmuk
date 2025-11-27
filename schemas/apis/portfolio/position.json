@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "required": ["symbol", "qty", "avgPrice", "realizedPnl"],
+  "properties": {
+    "symbol": {
+      "type": "string",
+      "description": "종목 코드",
+      "example": "005930.KS"
+    },
+    "qty": {
+      "type": "integer",
+      "description": "보유 수량",
+      "example": 10
+    },
+    "avgPrice": {
+      "type": "integer",
+      "description": "평균 단가",
+      "example": 74000
+    },
+    "realizedPnl": {
+      "type": "integer",
+      "description": "실현 손익",
+      "example": 3000
+    }
+  }
+}

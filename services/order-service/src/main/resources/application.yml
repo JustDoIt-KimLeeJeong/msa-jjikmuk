@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: order-service # Logback?? ??
+
+  profiles:
+    active: dev
+
+  # JPA ?? ??
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+
+# ?? ??
+server:
+  port: 8100
+  shutdown: graceful
+
+# Actuator ??
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics,loggers
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    loggers:
+      enabled: true  # ??? ?? ?? ?? ??
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+
+# ?? ?? (logback-spring.xml ??)
+logging:
+  level:
+    root: INFO
+    com.tradingsystem.order: DEBUG

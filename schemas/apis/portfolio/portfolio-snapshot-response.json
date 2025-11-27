@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "required": ["userId", "balances", "positions"],
+  "properties": {
+    "userId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "사용자 ID",
+      "example": 1
+    },
+    "balances": {
+      "$ref": "./balance.json"
+    },
+    "positions": {
+      "type": "array",
+      "description": "보유 포지션 목록",
+      "items": {
+        "$ref": "./position.json"
+      }
+    }
+  }
+}

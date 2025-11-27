@@ -1,0 +1,443 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Order API",
+    "version": "1.0.0",
+    "description": "주문 생성 및 관리 API"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8081",
+      "description": "Order Service"
+    }
+  ],
+  "paths": {
+    "/api/orders": {
+      "get": {
+        "summary": "주문 목록 조회",
+        "description": "사용자의 주문 목록을 페이지네이션으로 조회합니다.",
+        "operationId": "getOrders",
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "사용자 ID"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            },
+            "description": "페이지 번호 (0부터 시작)"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "페이지 크기"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "주문 목록 조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "주문 생성",
+        "description": "시장가 또는 지정가 매수/매도 주문을 생성합니다.",
+        "operationId": "createOrder",
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "사용자 ID"
+          },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "요청 추적 ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrderRequest"
+              },
+              "examples": {
+                "marketBuy": {
+                  "summary": "시장가 매수 주문",
+                  "value": {
+                    "correlationId": "ORD_018e8c7a-9c5e-7000-8000-000000000002",
+                    "clientOrderId": "test-market-buy-002",
+                    "symbol": "005930",
+                    "side": "BUY",
+                    "type": "MARKET",
+                    "quantity": 10
+                  }
+                },
+                "limitSell": {
+                  "summary": "지정가 매도 주문",
+                  "value": {
+                    "correlationId": "ORD_018e8c7a-9c5e-7000-8000-000000000002",
+                    "clientOrderId": "test-limit-sell-001",
+                    "symbol": "035720",
+                    "side": "SELL",
+                    "type": "LIMIT",
+                    "price": 50000,
+                    "quantity": 5
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "주문 생성 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                },
+                "examples": {
+                  "marketBuy": {
+                    "summary": "시장가 매수 주문 응답",
+                    "value": {
+                      "orderId": 3,
+                      "correlationId": "ORD_018e8c7a-9c5e-7000-8000-000000000002",
+                      "clientOrderId": "test-market-buy-002",
+                      "symbol": "005930",
+                      "side": "BUY",
+                      "type": "MARKET",
+                      "price": null,
+                      "quantity": 10,
+                      "filledQuantity": 0,
+                      "remainingQuantity": 10,
+                      "status": "PENDING",
+                      "statusDisplayName": "대기중",
+                      "expiresAt": null,
+                      "createdAt": "2025-10-15 00:11:35",
+                      "updatedAt": "2025-10-15 00:11:35",
+                      "active": true,
+                      "filledPercentage": 0.0,
+                      "fullyFilled": false,
+                      "partiallyFilled": false
+                    }
+                  },
+                  "limitSell": {
+                    "summary": "지정가 매도 주문 응답",
+                    "value": {
+                      "orderId": 2,
+                      "correlationId": "ORD_018e8c7a-9c5e-7000-8000-000000000001",
+                      "clientOrderId": "test-limit-sell-001",
+                      "symbol": "035720",
+                      "side": "SELL",
+                      "type": "LIMIT",
+                      "price": 50000,
+                      "quantity": 5,
+                      "filledQuantity": 0,
+                      "remainingQuantity": 5,
+                      "status": "PENDING",
+                      "statusDisplayName": "대기중",
+                      "expiresAt": "2025-10-16 00:10:02",
+                      "createdAt": "2025-10-15 00:10:02",
+                      "updatedAt": "2025-10-15 00:10:02",
+                      "active": true,
+                      "filledPercentage": 0.0,
+                      "fullyFilled": false,
+                      "partiallyFilled": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청 (Validation 오류)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "marketWithPrice": {
+                    "summary": "시장가 주문에 price 포함",
+                    "value": {
+                      "code": "INVALID_REQUEST",
+                      "message": "시장가 주문은 가격을 지정할 수 없습니다",
+                      "timestamp": "2025-10-15 01:21:34"
+                    }
+                  },
+                  "limitWithoutPrice": {
+                    "summary": "지정가 주문에 price 없음",
+                    "value": {
+                      "code": "INVALID_REQUEST",
+                      "message": "지정가 주문은 양수 가격이 필수입니다",
+                      "timestamp": "2025-10-15 01:21:56"
+                    }
+                  },
+                  "invalidSymbol": {
+                    "summary": "잘못된 symbol 형식",
+                    "value": {
+                      "code": "VALIDATION_ERROR",
+                      "message": "종목 코드는 6자리 숫자여야 합니다",
+                      "timestamp": "2025-10-15 01:22:19"
+                    }
+                  },
+                  "invalidQuantity": {
+                    "summary": "수량이 0 이하",
+                    "value": {
+                      "code": "VALIDATION_ERROR",
+                      "message": "주문 수량은 최소 1주 이상이어야 합니다",
+                      "timestamp": "2025-10-15 01:22:37"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복된 주문 (clientOrderId 중복)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "code": "DUPLICATE_ORDER",
+                  "message": "이미 존재하는 주문입니다. clientOrderId: test-market-buy-001",
+                  "timestamp": "2025-01-11 17:00:00"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/{orderId}": {
+      "get": {
+        "summary": "주문 상세 조회",
+        "description": "특정 주문의 상세 정보를 조회합니다.",
+        "operationId": "getOrderById",
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "사용자 ID"
+          },
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "주문 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "주문 조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                },
+                "example": {
+                  "orderId": 2,
+                  "correlationId": "ORD_018e8c7a-9c5e-7000-8000-000000000001",
+                  "clientOrderId": "test-market-buy-002",
+                  "symbol": "005930",
+                  "side": "BUY",
+                  "type": "MARKET",
+                  "price": null,
+                  "quantity": 10,
+                  "filledQuantity": 0,
+                  "remainingQuantity": 10,
+                  "status": "PENDING",
+                  "statusDisplayName": "대기중",
+                  "expiresAt": null,
+                  "createdAt": "2025-10-15 00:47:31",
+                  "updatedAt": "2025-10-15 00:47:31",
+                  "active": true,
+                  "filledPercentage": 0.0,
+                  "fullyFilled": false,
+                  "partiallyFilled": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "주문을 찾을 수 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "code": "ORDER_NOT_FOUND",
+                  "message": "주문을 찾을 수 없습니다. orderId: 10",
+                  "timestamp": "2025-10-15 01:19:38"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "주문 취소",
+        "description": "특정 주문을 취소합니다.",
+        "operationId": "cancelOrder",
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "사용자 ID"
+          },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "요청 추적 ID"
+          },
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "주문 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "주문 취소 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelOrderResponse"
+                },
+                "example": {
+                  "orderId": 2,
+                  "correlationId": "CANCEL_e287fdb6-b2a6-4a34-b2df-a7c84cdd9bb0",
+                  "clientOrderId": "test-market-buy-002",
+                  "symbol": "005930",
+                  "side": "BUY",
+                  "type": "MARKET",
+                  "price": null,
+                  "quantity": 10,
+                  "filledQuantity": 0,
+                  "remainingQuantity": 10,
+                  "status": "CANCELLED",
+                  "statusDisplayName": "취소됨",
+                  "expiresAt": null,
+                  "createdAt": "2025-10-15 00:47:31",
+                  "updatedAt": "2025-10-15 00:47:31",
+                  "active": false,
+                  "filledPercentage": 0.0,
+                  "fullyFilled": false,
+                  "partiallyFilled": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "취소 불가능한 주문 상태",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "code": "INVALID_STATE",
+                  "message": "취소할 수 없는 주문 상태입니다. status: CANCELLED",
+                  "timestamp": "2025-10-15 01:22:57"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "주문을 찾을 수 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "code": "ORDER_NOT_FOUND",
+                  "message": "주문을 찾을 수 없습니다. orderId: 10",
+                  "timestamp": "2025-10-15 01:19:38"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateOrderRequest": {
+        "$ref": "./create-order-request.json"
+      },
+      "OrderResponse": {
+        "$ref": "./order-response.json"
+      },
+      "OrderListResponse": {
+        "$ref": "./order-list-response.json"
+      },
+      "CancelOrderResponse": {
+        "$ref": "./cancel-order-response.json"
+      },
+      "ErrorResponse": {
+        "$ref": "./error-response.json"
+      }
+    }
+  }
+}

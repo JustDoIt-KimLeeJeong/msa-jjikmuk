@@ -1,0 +1,57 @@
+{
+  "type": "object",
+  "required": ["symbol", "name", "market", "isin", "currency", "tickSize", "priceLimitPct", "lotSize", "displayPrecision", "active"],
+  "properties": {
+    "symbol": {
+      "type": "string",
+      "description": "종목 코드",
+      "example": "005930"
+    },
+    "name": {
+      "type": "string",
+      "description": "종목명",
+      "example": "삼성전자"
+    },
+    "market": {
+      "type": "string",
+      "description": "시장 구분",
+      "enum": ["KOSPI", "KOSDAQ"],
+      "example": "KOSPI"
+    },
+    "isin": {
+      "type": "string",
+      "description": "국제 증권 식별 번호",
+      "example": "KR7005930003"
+    },
+    "currency": {
+      "type": "string",
+      "description": "통화",
+      "example": "KRW"
+    },
+    "tickSize": {
+      "type": "integer",
+      "description": "호가 단위",
+      "example": 100
+    },
+    "priceLimitPct": {
+      "type": "integer",
+      "description": "가격 제한 비율 (%)",
+      "example": 30
+    },
+    "lotSize": {
+      "type": "integer",
+      "description": "거래 단위",
+      "example": 1
+    },
+    "displayPrecision": {
+      "type": "integer",
+      "description": "표시 소수점 자릿수",
+      "example": 0
+    },
+    "active": {
+      "type": "boolean",
+      "description": "활성 여부",
+      "example": true
+    }
+  }
+}

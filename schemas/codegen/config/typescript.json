@@ -1,0 +1,16 @@
+{
+  "generatorName": "typescript-fetch",
+  "inputSpec": "../../apis/user/openapi.json",
+  "outputDir": "../../generated/ts/user",
+  "additionalProperties": {
+    "supportsES6": true,
+    "modelPropertyNaming": "camelCase",
+    "withSeparateModelsAndApi": true,
+    "apiPackage": "api",
+    "modelPackage": "models",
+    "npmName": "@msa-jjikmuk/user-api",
+    "npmVersion": "1.0.0",
+    "useSingleRequestParameter": true,
+    "hideGenerationTimestamp": true
+  }
+}
