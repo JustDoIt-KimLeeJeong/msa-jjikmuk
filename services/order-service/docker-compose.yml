@@ -112,6 +112,27 @@ services:
     networks:
       - order-network
 
+  # Connector 자동 등록
+  connector-init:
+    image: curlimages/curl:latest
+    container_name: order-connector-init
+    depends_on:
+      kafka-connect:
+        condition: service_healthy
+    volumes:
+      - ./debezium-connector.json:/tmp/connector.json
+      - ./scripts/register-connector.sh:/tmp/register.sh
+      - ./.env:/tmp/.env
+    entrypoint: /bin/sh
+    command: |
+      -c "
+      apk add --no-cache bash sed &&
+      chmod +x /tmp/register.sh &&
+      /tmp/register.sh
+      "
+    networks:
+      - order-network
+
   # Prometheus
   prometheus:
     image: prom/prometheus:v3.0.1
