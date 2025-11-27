@@ -1,6 +1,6 @@
 import { Controller, Get, Res, Logger } from '@nestjs/common';
 import { FastifyReply } from 'fastify';
-import { NotificationsService } from './notifications.service';
+import { NotificationsService } from './notification.service';
 
 @Controller('/api/notifications')
 export class NotificationsController {

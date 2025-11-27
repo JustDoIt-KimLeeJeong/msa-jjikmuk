@@ -8,7 +8,7 @@
       "generate:all": "pnpm run generate:ts && pnpm run generate:python && pnpm run generate:java"
     },
     "devDependencies": {
-      "@openapitools/openapi-generator-cli": "^7.6.0"
+      "@openapitools/openapi-generator-cli": "^2.13.4"
     }
   }
   

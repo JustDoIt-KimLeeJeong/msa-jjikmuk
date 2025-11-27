@@ -3,7 +3,7 @@ import { FastifyReply } from 'fastify';
 import {
   NotificationEventType,
   NotificationData,
-} from './dto/notification.dto';
+} from './dtos/notification.dto';
 
 @Injectable()
 export class NotificationsService {

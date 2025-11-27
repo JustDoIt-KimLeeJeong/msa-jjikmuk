@@ -6,8 +6,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import { HttpService } from '../common/http/http.service';
-import { SignupRequestDto } from './dto/signup-request.dto';
-import { LoginRequestDto } from './dto/login-request.dto';
+import { SignupRequestDto } from './dtos/signup-request.dto';
+import { LoginRequestDto } from './dtos/login-request.dto';
 
 @Injectable()
 export class AuthService {
