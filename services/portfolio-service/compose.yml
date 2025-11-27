@@ -67,6 +67,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    
 
   # ============================================
   # Redis
@@ -95,11 +96,11 @@ services:
     restart: unless-stopped
     environment:
       # Database
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-0000}
-      POSTGRES_DB: ${POSTGRES_DB:-portfolio}
+      PG_HOST: ${PG_HOST:-postgres}  # .env에 없으면 postgres 사용
+      PG_PORT: ${PG_PORT:-5432}
+      PG_USER: ${PG_USER:-postgres}
+      PG_PASSWORD: ${PG_PASSWORD:-0000}
+      PG_DB_NAME: ${PG_DB_NAME:-portfolio}
       
       # Redis
       REDIS_HOST: redis
@@ -125,6 +126,26 @@ services:
       kafka:
         condition: service_healthy
     # command: python -m adapters.inbound.events.consumer
-    command: faststream run interfaces.kafka_app:kafka_app
+    command: faststream run interfaces.kafka_app:kafka_app --reload
     volumes:
       - .:/app  # 개발 시 hot reload
+
+  kafka-connect:
+    image: quay.io/debezium/connect:3.0
+    container_name: kafka-connect
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: connect-configs
+      OFFSET_STORAGE_TOPIC: connect-offsets
+      STATUS_STORAGE_TOPIC: connect-status
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+    ports:
+      - "8083:8083"

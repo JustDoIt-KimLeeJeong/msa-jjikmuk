@@ -1,17 +1,20 @@
 import asyncio
 from logging.config import fileConfig
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from alembic import context
-from app.db.models import Base
+from app.db.base_models import Base
 from app.db.engine import engine as async_engine
 
 # project 폴더에 맞춘 import 
-from app.settings import settings
+from app.settings import base_settings
 
 
 # this is the Alembic Config object, which provides
@@ -48,7 +51,7 @@ def run_migrations_offline() -> None:
 
     """
 
-    url = settings.PG_DSN#config.get_main_option("sqlalchemy.url")
+    url = base_settings.PG_DSN#config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -78,7 +81,7 @@ async def run_async_migrations() -> None:
     #     prefix="sqlalchemy.",
     #     poolclass=pool.NullPool,
     # )
-    connectable = create_async_engine(settings.PG_DSN, pool_pre_ping=True)
+    connectable = create_async_engine(base_settings.PG_DSN, pool_pre_ping=True)
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)

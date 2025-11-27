@@ -1,6 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional, ClassVar
-
+from dotenv import load_dotenv
 
 # kafka용 
 import os
@@ -9,7 +9,9 @@ from dataclasses import dataclass
 
 # 전체 Settings
 
-class Settings:
+load_dotenv()
+
+class Settings(BaseSettings):
     # app 전체 
     APP_NAME : ClassVar[str] = "portfolio"
 
@@ -20,16 +22,11 @@ class Settings:
     PG_PASSWORD : str
     PG_USER : str
     # env
-    model_config = SettingsConfigDict(env_file='.env',  extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore")
 
     @property
     def PG_DSN(self) -> str: 
         return f"postgresql+asyncpg://{self.PG_USER}:{self.PG_PASSWORD}@{self.PG_HOST}:{self.PG_PORT}/{self.PG_DB_NAME}"
-
-
-
-# Kafka settings 
-
 
 
 # ── 유틸: 컨테이너 여부 감지 (docker exec/compose 환경이면 True일 가능성 높음)
@@ -87,3 +84,4 @@ class Kafka_Settings:
     topics: KafkaTopics = KafkaTopics()
 # 모듈 import 시 한 번만 로드해서 전역으로 재사용
 settings = Kafka_Settings()
+base_settings = Settings()

@@ -3,9 +3,12 @@ from datetime import datetime
 
 
 
-### inboundDTO
 
-# Base Class들
+"""
+############################Inbound DTO######################################################
+"""
+
+####################### Base Class
 class PurchaseSellEventEnvelope(BaseModel) : 
     model_config = ConfigDict(populate_by_name=True, frozen=True)
     event_id: str = Field(default=None, alias="eventId")
@@ -17,7 +20,8 @@ class InternalFailEventEnvelope(BaseModel) :
     reason_code : str
 
 
-# Base를 제외한 나머지
+####################### Specific Class
+
 
 class Order(PurchaseSellEventEnvelope) : 
     symbol: str
@@ -40,7 +44,11 @@ class PriceSyncDegrade(InternalFailEventEnvelope) :
     symbol : str 
 
 
-###OutboundDTO
+"""
+############################Outbound DTO######################################################
+"""
+
+####################### Base Class
 
 class OutboundEventEnvelop(BaseModel) : 
     event_id : str
@@ -49,9 +57,15 @@ class OutboundEventEnvelop(BaseModel) :
     user_id : int
     
 
+####################### Specific Class
+
 class OrderPlace(OutboundEventEnvelop) : 
     symbol : str
     qty : int
+    price : int # 삭제 필요?
+    side : str # 삭제 필요?
+    reserved_balance : int # 삭제 필요?
+    reserved_qty : int # 삭제 필요?
 
 class TradeExecuted(OutboundEventEnvelop) : 
     trade_id : str

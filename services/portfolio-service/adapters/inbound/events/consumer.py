@@ -4,10 +4,17 @@ from app.kafka_router import build_event_router, subscribed_event
 from adapters.inbound.events.event_router import EventRouter
 from faststream import FastStream
 from faststream.kafka import KafkaBroker, KafkaMessage
+import json
 
+
+def custom_decoder(msg : bytes) : 
+    if isinstance(msg, bytes) : 
+        return json.loads(msg)
+    return json.loads(msg.body)
 
 broker = KafkaBroker(
-    bootstrap_servers=settings.bootstrap_servers
+    bootstrap_servers=settings.bootstrap_servers,
+    decoder=custom_decoder
 )
 app = FastStream(broker)
 
@@ -31,8 +38,6 @@ def header(headers: dict[str, bytes] | None, key: str) -> str | None:
 
 
 
-
-
 async def run_consumer(payload : dict, message: KafkaMessage ):
     headers = message.headers
     event_type = header(headers, "event_type")
@@ -40,8 +45,9 @@ async def run_consumer(payload : dict, message: KafkaMessage ):
         print("Missing Event Type. Body : {body}")
     
     try :
-        await router.get_router(event_type, payload)
+        await router.get_router(event_type, payload, headers)
 
     except Exception as e : 
         print(f"Error while fetching Router. event : {event_type}, Error : {e}") 
-    
+
+

@@ -1,4 +1,4 @@
-from app.db.models import Position, Balance
+from app.db.user_models import Position, Balance
 from typing import Mapping
 
 
