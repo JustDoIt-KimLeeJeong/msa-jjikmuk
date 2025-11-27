@@ -123,17 +123,4 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
-    /**
-     * CorrelationId 누락 예외 처리
-     * - 필수 헤더(또는 MDC) 누락 (BFF 미경유 호출 등)
-     * HTTP 400 Bad Request (또는 정책에 따라 403 Forbidden)
-     */
-    @ExceptionHandler(CorrelationIdMissingException.class)
-    public ResponseEntity<ErrorResponse> handleCorrelationIdMissing(CorrelationIdMissingException e) {
-        // 보안/인프라 정책 위반일 수 있으므로 Error 레벨로 로깅하거나 Warn 유지
-        log.warn("CorrelationId 누락됨 (BFF 미경유 의심): {}", e.getMessage());
-
-        ErrorResponse errorResponse = ErrorResponse.of("CORRELATION_ID_MISSING", "잘못된 접근입니다. (Missing Correlation ID)");
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-    }
 }
