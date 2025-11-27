@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "format": "email",
+      "minLength": 2,
+      "description": "유효한 이메일 주소 (@ 포함)"
+    },
+    "pwd": {
+      "type": "string",
+      "minLength": 8,
+      "description": "8자 이상 비밀번호"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 2,
+      "description": "사용자 이름"
+    }
+  },
+  "required": ["email", "pwd", "name"]
+}

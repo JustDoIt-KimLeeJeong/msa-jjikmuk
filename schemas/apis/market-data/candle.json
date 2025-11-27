@@ -1,0 +1,38 @@
+{
+  "type": "object",
+  "required": ["ts", "o", "h", "l", "c", "v"],
+  "properties": {
+    "ts": {
+      "type": "string",
+      "format": "date-time",
+      "description": "봉 마감 시각 (ISO 8601, UTC)",
+      "example": "2025-09-24T00:01:00Z"
+    },
+    "o": {
+      "type": "integer",
+      "description": "시가",
+      "example": 70100
+    },
+    "h": {
+      "type": "integer",
+      "description": "고가",
+      "example": 70200
+    },
+    "l": {
+      "type": "integer",
+      "description": "저가",
+      "example": 70000
+    },
+    "c": {
+      "type": "integer",
+      "description": "종가",
+      "example": 70150
+    },
+    "v": {
+      "type": "integer",
+      "format": "int64",
+      "description": "거래량",
+      "example": 34567
+    }
+  }
+}

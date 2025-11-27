@@ -1,0 +1,14 @@
+{
+  "generatorName": "java",
+  "inputSpec": "../../apis/user/openapi.json",
+  "outputDir": "../../generated/java/user",
+  "additionalProperties": {
+    "library": "resttemplate",
+    "apiPackage": "com.msa.jjikmuk.user.api",
+    "modelPackage": "com.msa.jjikmuk.user.models",
+    "artifactId": "user-api-client",
+    "groupId": "com.msa.jjikmuk",
+    "artifactVersion": "1.0.0",
+    "hideGenerationTimestamp": true
+  }
+}

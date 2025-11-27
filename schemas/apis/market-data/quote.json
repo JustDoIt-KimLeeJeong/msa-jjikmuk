@@ -1,0 +1,42 @@
+{
+  "type": "object",
+  "required": ["symbol", "name", "bid", "ask", "bidSize", "askSize", "ts"],
+  "properties": {
+    "symbol": {
+      "type": "string",
+      "description": "종목 코드",
+      "example": "005930"
+    },
+    "name": {
+      "type": "string",
+      "description": "종목명",
+      "example": "삼성전자"
+    },
+    "bid": {
+      "type": "integer",
+      "description": "매수 호가",
+      "example": 70000
+    },
+    "ask": {
+      "type": "integer",
+      "description": "매도 호가",
+      "example": 70100
+    },
+    "bidSize": {
+      "type": "integer",
+      "description": "매수 잔량",
+      "example": 1200
+    },
+    "askSize": {
+      "type": "integer",
+      "description": "매도 잔량",
+      "example": 950
+    },
+    "ts": {
+      "type": "integer",
+      "format": "int64",
+      "description": "타임스탬프 (Unix milliseconds)",
+      "example": 1737777777777
+    }
+  }
+}

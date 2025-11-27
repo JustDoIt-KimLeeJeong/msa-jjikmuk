@@ -1,0 +1,23 @@
+{
+  "type": "object",
+  "required": ["code", "message", "timestamp"],
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "에러 코드",
+      "enum": ["SYMBOL_NOT_FOUND", "INVALID_INTERVAL", "INVALID_SYMBOLS", "TOO_MANY_SYMBOLS", "INVALID_DATE_RANGE"],
+      "example": "SYMBOL_NOT_FOUND"
+    },
+    "message": {
+      "type": "string",
+      "description": "에러 메시지",
+      "example": "종목을 찾을 수 없습니다"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "에러 발생 시간",
+      "example": "2025-10-15T01:22:19Z"
+    }
+  }
+}
