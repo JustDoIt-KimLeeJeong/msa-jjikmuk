@@ -1,0 +1,42 @@
+{
+  "type": "object",
+  "required": ["symbol", "interval", "items"],
+  "properties": {
+    "symbol": {
+      "type": "string",
+      "description": "종목 코드",
+      "example": "005930"
+    },
+    "interval": {
+      "type": "string",
+      "description": "차트 간격",
+      "enum": ["1m", "1d", "1w"],
+      "example": "1m"
+    },
+    "items": {
+      "type": "array",
+      "description": "캔들 데이터 목록 (오름차순 정렬)",
+      "items": {
+        "$ref": "./candle.json"
+      }
+    },
+    "errors": {
+      "type": "array",
+      "description": "에러 목록 (부분 실패 시)",
+      "items": {
+        "type": "object",
+        "required": ["symbol", "code"],
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "종목 코드"
+          },
+          "code": {
+            "type": "string",
+            "description": "에러 코드"
+          }
+        }
+      }
+    }
+  }
+}

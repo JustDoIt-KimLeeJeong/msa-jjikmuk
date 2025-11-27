@@ -1,0 +1,128 @@
+{
+  "type": "object",
+  "required": [
+    "orderId",
+    "correlationId",
+    "clientOrderId",
+    "symbol",
+    "side",
+    "type",
+    "quantity",
+    "filledQuantity",
+    "remainingQuantity",
+    "status",
+    "statusDisplayName",
+    "createdAt",
+    "updatedAt",
+    "active",
+    "filledPercentage",
+    "fullyFilled",
+    "partiallyFilled"
+  ],
+  "properties": {
+    "orderId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "주문 ID",
+      "example": 3
+    },
+    "correlationId": {
+      "type": "string",
+      "description": "요청 추적 ID",
+      "example": "ORD_018e8c7a-9c5e-7000-8000-000000000002"
+    },
+    "clientOrderId": {
+      "type": "string",
+      "description": "클라이언트 주문 ID",
+      "example": "test-market-buy-002"
+    },
+    "symbol": {
+      "type": "string",
+      "description": "종목 코드",
+      "example": "005930"
+    },
+    "side": {
+      "type": "string",
+      "enum": ["BUY", "SELL"],
+      "description": "매수/매도 구분"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["MARKET", "LIMIT"],
+      "description": "주문 유형"
+    },
+    "price": {
+      "type": "number",
+      "format": "double",
+      "description": "주문 가격 (시장가 주문의 경우 null)",
+      "example": 50000,
+      "nullable": true
+    },
+    "quantity": {
+      "type": "integer",
+      "description": "주문 수량",
+      "example": 10
+    },
+    "filledQuantity": {
+      "type": "integer",
+      "description": "체결된 수량",
+      "example": 0
+    },
+    "remainingQuantity": {
+      "type": "integer",
+      "description": "미체결 수량",
+      "example": 10
+    },
+    "status": {
+      "type": "string",
+      "enum": ["PENDING", "ACCEPTED", "FILLED", "PARTIALLY_FILLED", "CANCELLED", "REJECTED"],
+      "description": "주문 상태",
+      "example": "PENDING"
+    },
+    "statusDisplayName": {
+      "type": "string",
+      "description": "주문 상태 한글명",
+      "example": "대기중"
+    },
+    "expiresAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "주문 만료 시간 (시장가 주문의 경우 null)",
+      "example": "2025-10-16 00:10:02",
+      "nullable": true
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "주문 생성 시간",
+      "example": "2025-10-15 00:11:35"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "주문 수정 시간",
+      "example": "2025-10-15 00:11:35"
+    },
+    "active": {
+      "type": "boolean",
+      "description": "주문 활성 여부",
+      "example": true
+    },
+    "filledPercentage": {
+      "type": "number",
+      "format": "double",
+      "description": "체결률 (%)",
+      "example": 0.0
+    },
+    "fullyFilled": {
+      "type": "boolean",
+      "description": "전체 체결 여부",
+      "example": false
+    },
+    "partiallyFilled": {
+      "type": "boolean",
+      "description": "부분 체결 여부",
+      "example": false
+    }
+  }
+}

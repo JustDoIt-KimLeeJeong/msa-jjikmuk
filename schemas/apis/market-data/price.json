@@ -1,0 +1,33 @@
+{
+  "type": "object",
+  "required": ["symbol", "name", "last", "chgPct", "ts"],
+  "properties": {
+    "symbol": {
+      "type": "string",
+      "description": "종목 코드",
+      "example": "005930"
+    },
+    "name": {
+      "type": "string",
+      "description": "종목명",
+      "example": "삼성전자"
+    },
+    "last": {
+      "type": "integer",
+      "description": "현재가",
+      "example": 70100
+    },
+    "chgPct": {
+      "type": "number",
+      "format": "double",
+      "description": "등락률 (%)",
+      "example": -0.42
+    },
+    "ts": {
+      "type": "integer",
+      "format": "int64",
+      "description": "타임스탬프 (Unix milliseconds)",
+      "example": 1737777777777
+    }
+  }
+}

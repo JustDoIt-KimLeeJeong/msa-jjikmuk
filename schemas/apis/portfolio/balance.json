@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "required": ["available", "reserved"],
+  "properties": {
+    "available": {
+      "type": "integer",
+      "description": "가용 잔고",
+      "example": 1200000
+    },
+    "reserved": {
+      "type": "integer",
+      "description": "예약 잔고 (주문 대기 중인 금액)",
+      "example": 0
+    }
+  }
+}

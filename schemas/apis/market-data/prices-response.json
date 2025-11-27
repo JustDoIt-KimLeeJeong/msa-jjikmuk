@@ -1,0 +1,33 @@
+{
+  "type": "object",
+  "required": ["items"],
+  "properties": {
+    "items": {
+      "type": "array",
+      "description": "현재가 목록",
+      "items": {
+        "$ref": "./price.json"
+      }
+    },
+    "errors": {
+      "type": "array",
+      "description": "에러 목록 (부분 실패 시)",
+      "items": {
+        "type": "object",
+        "required": ["symbol", "code"],
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "종목 코드",
+            "example": "XXXXXX"
+          },
+          "code": {
+            "type": "string",
+            "description": "에러 코드",
+            "example": "SYMBOL_NOT_FOUND"
+          }
+        }
+      }
+    }
+  }
+}

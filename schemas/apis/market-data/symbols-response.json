@@ -1,0 +1,56 @@
+{
+  "type": "object",
+  "required": ["version", "updatedAt", "rules", "symbols"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "description": "API 버전",
+      "example": 1
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "마지막 업데이트 시각 (ISO 8601)",
+      "example": "2025-09-24T06:30:00Z"
+    },
+    "rules": {
+      "type": "object",
+      "required": ["maxSymbols", "defaultWatchlist", "intervals", "defaultQuoteLevel"],
+      "properties": {
+        "maxSymbols": {
+          "type": "integer",
+          "description": "최대 심볼 개수",
+          "example": 30
+        },
+        "defaultWatchlist": {
+          "type": "array",
+          "description": "기본 관심종목 목록",
+          "items": {
+            "type": "string"
+          },
+          "example": ["005930", "000660", "035420", "035720", "068270"]
+        },
+        "intervals": {
+          "type": "array",
+          "description": "지원하는 차트 간격",
+          "items": {
+            "type": "string"
+          },
+          "example": ["1m", "1d", "1w"]
+        },
+        "defaultQuoteLevel": {
+          "type": "integer",
+          "description": "기본 호가 레벨",
+          "example": 1
+        }
+      }
+    },
+    "symbols": {
+      "type": "array",
+      "description": "종목 목록",
+      "items": {
+        "$ref": "./symbol.json"
+      }
+    }
+  }
+}

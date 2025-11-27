@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "properties": {
+    "userId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "생성된 사용자 UUID"
+    }
+  },
+  "required": ["userId"]
+}
