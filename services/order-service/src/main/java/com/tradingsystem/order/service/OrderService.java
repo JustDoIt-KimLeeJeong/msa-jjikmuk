@@ -111,7 +111,6 @@ public class OrderService {
      * 4. OrderCancelled 이벤트 발행
      * 5. Portfolio가 예약 자금/주식 해제
      *
-     * @param userId BFF에서 전달받은 사용자 ID
      * @param orderId 취소할 주문 ID
      * @return 취소된 주문 정보
      * @throws OrderNotFoundException 주문을 찾을 수 없을 때
@@ -120,11 +119,16 @@ public class OrderService {
      */
     @Transactional
     public OrderResponse cancelOrder(String userId, Long orderId) {
-        log.info("주문 취소 시작: userId={}, orderId={}", userId, orderId);
-
         try {
             // 1. 주문 조회 및 소유권 검증
-            Order order = findOrderByIdAndUserId(orderId, userId);
+            Order order = orderRepository.findById(orderId)
+                    .orElseThrow(() -> new OrderNotFoundException("Order not found: " + orderId));
+
+            // 본인 주문만 취소 가능
+            if (!order.getUserId().equals(userId)) {
+                throw new UnauthorizedOrderAccessException(
+                        "본인 주문만 취소할 수 있습니다.: " + orderId);
+            }
 
             // 2. 취소 가능 상태 검증
             if (!order.isCancellable()) {
@@ -136,15 +140,14 @@ public class OrderService {
 
             // 3. 주문 취소 처리
             order.cancel();
-            log.debug("주문 상태 변경: orderId={}, status=CANCELLED", orderId);
+
+            log.debug("주문이 취소되었습니다.: orderId={}, status=CANCELLED", orderId);
 
             // 4. 이벤트 데이터 생성
             OrderCancelledData eventData = buildOrderCancelledData(order);
 
             // 5. Outbox에 이벤트 발행
             eventPublisher.publish("order.cancelled", order.getId(), eventData);
-
-            log.info("주문 취소 완료: orderId={}", orderId);
 
             return OrderResponse.from(order);
 
@@ -168,9 +171,14 @@ public class OrderService {
      * @throws UnauthorizedOrderAccessException 주문 소유자가 아닐 때
      */
     public OrderResponse getOrder(String userId, Long orderId) {
-        log.debug("주문 단건 조회: userId={}, orderId={}", userId, orderId);
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new OrderNotFoundException("주문이 존재하지 않습니다: " + orderId));
 
-        Order order = findOrderByIdAndUserId(orderId, userId);
+        if (!order.getUserId().equals(userId)) {
+            throw new UnauthorizedOrderAccessException(
+                    "본인 주문만 조회 가능합니다: " + orderId);
+        }
+
         return OrderResponse.from(order);
     }
 
@@ -178,29 +186,12 @@ public class OrderService {
      * 주문 목록 조회 (페이징)
      *
      * @param userId 사용자 ID
-     * @param page 페이지 번호 (0부터 시작)
-     * @param size 페이지 크기
-     * @param status 주문 상태 필터 (선택)
+     * @param pageable
      * @return 페이징된 주문 목록
      */
-    public PageResponse<OrderResponse> getOrders(
-            String userId, int page, int size, String status) {
-        log.debug("주문 목록 조회: userId={}, page={}, size={}, status={}",
-                userId, page, size, status);
-
-        Pageable pageable = PageRequest.of(
-                page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-
-        Page<Order> orderPage;
-        if (status != null && !status.isBlank()) {
-            OrderStatus orderStatus = OrderStatus.valueOf(status.toUpperCase());
-            orderPage = orderRepository.findByUserIdAndStatus(userId, orderStatus, pageable);
-        } else {
-            orderPage = orderRepository.findByUserId(userId, pageable);
-        }
-
-        Page<OrderResponse> responsePage = orderPage.map(OrderResponse::from);
-        return PageResponse.from(responsePage);
+    public Page<OrderResponse> getOrders(String userId, Pageable pageable) {
+        Page<Order> orders = orderRepository.findByUserId(userId, pageable);
+        return orders.map(OrderResponse::from);
     }
 
     // ========== Private Helper Methods ==========
@@ -281,18 +272,5 @@ public class OrderService {
                 .cancelledAt(LocalDateTime.now())
                 .build();
     }
-
-    /**
-     * 주문 조회 및 소유권 검증
-     */
-    private Order findOrderByIdAndUserId(Long orderId, String userId) {
-        return orderRepository.findByIdAndUserId(orderId, userId)
-                .orElseThrow(() -> {
-                    log.warn("주문을 찾을 수 없거나 권한이 없음: orderId={}, userId={}",
-                            orderId, userId);
-                    return new OrderNotFoundException(
-                            String.format("주문을 찾을 수 없습니다. orderId=%d", orderId)
-                    );
-                });
-    }
+    
 }

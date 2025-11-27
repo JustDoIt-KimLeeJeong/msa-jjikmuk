@@ -28,12 +28,12 @@ public class PageResponse<T> {
     /**
      * 현재 페이지 번호 (0부터 시작)
      */
-    private int page;
+    private int pageNumber;
 
     /**
      * 페이지당 데이터 개수
      */
-    private int size;
+    private int pageSize;
 
     /**
      * 전체 데이터 개수
@@ -75,11 +75,11 @@ public class PageResponse<T> {
      * @param <T> 데이터 타입
      * @return PageResponse 래퍼
      */
-    public static <T> PageResponse<T> from(Page<T> page) {
+    public static <T> PageResponse<T> of(Page<T> page) {
         return PageResponse.<T>builder()
                 .content(page.getContent())
-                .page(page.getNumber())
-                .size(page.getSize())
+                .pageNumber(page.getNumber())
+                .pageSize(page.getSize())
                 .totalElements(page.getTotalElements())
                 .totalPages(page.getTotalPages())
                 .isFirst(page.isFirst())
@@ -100,8 +100,8 @@ public class PageResponse<T> {
     public static <T> PageResponse<T> empty(int page, int size) {
         return PageResponse.<T>builder()
                 .content(List.of())
-                .page(page)
-                .size(size)
+                .pageNumber(page)
+                .pageSize(size)
                 .totalElements(0L)
                 .totalPages(0)
                 .isFirst(true)

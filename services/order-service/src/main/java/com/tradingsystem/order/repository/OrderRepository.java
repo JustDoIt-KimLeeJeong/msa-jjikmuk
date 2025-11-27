@@ -36,7 +36,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Page<Order> findByUserId(String userId, Pageable pageable);
 
     /**
-     * 사용자 + 상태별 주문 목록 조회 (페이징)
+     * 사용자 + 상태별 주문 목록 조회 (페이징용)
      * - OrderService.getOrders()에서 사용
      */
     Page<Order> findByUserIdAndStatus(String userId, OrderStatus status, Pageable pageable);
@@ -50,9 +50,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByUserIdOrderByCreatedAtDesc(String userId);
 
     /**
-     * 사용자 + 상태별 주문 조회
+     * 사용자 + 상태별 주문 조회(전체 조회용)
      */
-    List<Order> findByUserIdAndStatus(String userId, OrderStatus status);
+    List<Order> findAllByUserIdAndStatus(String userId, OrderStatus status);
 
     /**
      * clientOrderId 기반 중복 체크 (멱등성 보장)
