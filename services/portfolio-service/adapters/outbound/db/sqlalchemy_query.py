@@ -1,12 +1,152 @@
-
 from app.db.user_models import Order, Position, Balance
 from app.db.outbox_models import Outbox
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.orm import Session
-import domain.errors as Error
 from datetime import datetime
-import adapters.outbound.db.query_fields as qf
-import json
+
+
+async def search_order(user_id: int, order_id: str, symbol: str, side: str, session: Session):
+    result = await session.execute(
+        select(Order).where(Order.user_id == user_id, Order.order_id == order_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def update_order(user_id: int, order_id: str, symbol: str, qty: int, price: int, side: str, reserved_balance: int, reserved_qty: int, session: Session):
+    result = await session.execute(
+        select(Order).where(Order.user_id == user_id, Order.order_id == order_id)
+    )
+    existing_order = result.scalar_one_or_none()
+    
+    if existing_order:
+        raise ValueError(f"Order already exists: {order_id}")
+
+    order = Order(
+        order_id=order_id,
+        user_id=user_id,
+        symbol=symbol,
+        side=side,
+        reserved_balance=reserved_balance,
+        reserved_qty=reserved_qty,
+        updated_at=datetime.now()
+    )
+    session.add(order)
+    return order.updated_at
+
+
+async def trade_execution_buy(user_id: int, symbol: str, price: int, qty: int, session: Session):
+    if qty <= 0 or price <= 0:
+        raise ValueError(f"qty/price should be over 0: qty={qty}, price={price}")
+
+    # Balance 조회 및 업데이트
+    bal_result = await session.execute(
+        select(Balance).where(Balance.user_id == user_id)
+    )
+    balance = bal_result.scalar_one_or_none()
+    
+    if not balance or balance.reserved < price:
+        raise ValueError("Insufficient reserved balance")
+    
+    balance.reserved -= price
+    balance.available += 0  # 필요시 로직 추가
+
+    # Position 조회 및 업데이트
+    pos_result = await session.execute(
+        select(Position).where(Position.user_id == user_id, Position.symbol == symbol)
+    )
+    position = pos_result.scalar_one_or_none()
+    
+    if position:
+        position.qty += qty
+    else:
+        # 새 포지션 생성
+        new_position = Position(
+            user_id=user_id,
+            symbol=symbol,
+            qty=qty,
+            reserved_qty=0,
+            avg_price=price,
+            realized_pnl=0
+        )
+        session.add(new_position)
+
+
+async def trade_execution_sell(user_id: int, symbol: str, price: int, qty: int, session: Session):
+    # Balance 조회 및 업데이트
+    bal_result = await session.execute(
+        select(Balance).where(Balance.user_id == user_id)
+    )
+    balance = bal_result.scalar_one_or_none()
+    
+    if not balance:
+        raise ValueError("Balance not found")
+    
+    balance.available += price
+
+    # Position 조회 및 업데이트
+    pos_result = await session.execute(
+        select(Position).where(Position.user_id == user_id, Position.symbol == symbol)
+    )
+    position = pos_result.scalar_one_or_none()
+    
+    if not position or position.reserved_qty < qty:
+        raise ValueError("Insufficient reserved qty")
+    
+    position.reserved_qty -= qty
+    position.qty -= qty
+
+
+async def cancel_order(user_id: int, order_id: str, session: Session):
+    result = await session.execute(
+        select(Order).where(Order.user_id == user_id, Order.order_id == order_id)
+    )
+    order = result.scalar_one_or_none()
+    
+    if not order:
+        raise ValueError(f"Order not found: {order_id}")
+
+    if order.side == "buy":
+        bal_result = await session.execute(
+            select(Balance).where(Balance.user_id == user_id)
+        )
+        balance = bal_result.scalar_one_or_none()
+        if balance:
+            balance.reserved -= order.reserved_balance
+            balance.available += order.reserved_balance
+            
+    elif order.side == "sell":
+        pos_result = await session.execute(
+            select(Position).where(Position.user_id == user_id, Position.symbol == order.symbol)
+        )
+        position = pos_result.scalar_one_or_none()
+        if position:
+            position.reserved_qty -= order.reserved_qty
+            position.qty += order.reserved_qty
+
+    await session.delete(order)
+
+
+async def outbox_event_save(user_id: int, event_type: str, payload: dict, headers: dict, session: Session):
+    outbox = Outbox(
+        user_id=user_id,
+        event_type=event_type,
+        payload=payload,
+        headers=headers,
+        created_at=datetime.now()
+    )
+    session.add(outbox)
+
+
+async def user_portfolio(user_id: int, session: Session):
+    pos_result = await session.execute(
+        select(Position).where(Position.user_id == user_id)
+    )
+    bal_result = await session.execute(
+        select(Balance).where(Balance.user_id == user_id)
+    )
+    return pos_result.scalars().all(), bal_result.scalar_one_or_none()
+
+"""
 
 def search_order(user_id : int, order_id : str, symbol : str, side : str, session :Session) :
     # order_id로 검색! 두개가 있으면 / 없으면 에러를 띄워주는게 필요할 것 같습니당~~
@@ -76,7 +216,7 @@ async def update_order(user_id : int, order_id : str, symbol:str, qty:int, price
     )
     session.add(order)
         
-    return
+    return order.updated_at
 
 
 def user_portfolio(user_id: int, session :Session) : 
@@ -112,12 +252,15 @@ def cancel_order(user_id : int, order_id : str, session :Session) :
         pass
 
 
-async def outbox_event_save(user_id:int, event_type : str, payload : dict, headers, session : Session) :  
-    outbox = Outbox(
+async def outbox_event_save(user_id:int, event_id : str, event_type : str, order_id :str, reason_code : str, session : Session) :  
+    failure_event = OrderFailureOutbox(
+        original_event_id = event_id,
+        event_type =event_type,
+        occurred_at = datetime.now(),
+        order_id = order_id,
         user_id = user_id,
-        event_type = event_type,
-        payload = payload, 
-        headers = headers
+        reason_code=reason_code
     )
 
-    session.add(outbox)
+    session.add(failure_event)
+"""

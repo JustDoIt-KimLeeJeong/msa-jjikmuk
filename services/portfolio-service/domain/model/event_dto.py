@@ -80,4 +80,3 @@ class TradeExecuted(OutboundEventEnvelop) :
     fees : int
     filled_at : datetime
 
-

@@ -16,7 +16,7 @@ route_list = [
     EventDTOHandler("OrderPlaced", DTO.OrderPlace,Handler.order_placed), 
     EventDTOHandler("OrderCancelled",DTO.OutboundEventEnvelop, Handler.order_cancelled), 
     EventDTOHandler("TradeExecuted", DTO.TradeExecuted, Handler.trade_executed), 
-    EventDTOHandler("Test", DTO.OutboundEventEnvelop, Handler.test)
+    EventDTOHandler("Test", DTO.OutboundEventEnvelop, Handler.test),
     # router.add_router("OrderExpired", DTO.OutboundEventEnvelop, Handler.) # 아직 미작성된 코드
 ]
 
