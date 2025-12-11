@@ -11,7 +11,7 @@
     "database.dbname": "portfolio",
     "database.server.name": "portfolio-db",
 
-    "table.include.list": "public.outbox_events",
+    "table.include.list": "public.outbox,public.order_failure_outbox,public.internal_failure_outbox",
 
     "plugin.name": "pgoutput",
 
