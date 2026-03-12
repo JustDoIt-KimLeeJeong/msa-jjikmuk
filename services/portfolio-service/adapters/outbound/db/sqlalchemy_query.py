@@ -139,8 +139,7 @@ async def outbox_event_save(user_id: int, event_type: str, payload: dict, header
 
 async def user_portfolio(user_id: int, session: Session):
     pos_result = await session.execute(select(Position).where(Position.user_id == user_id))
-    bal_result = await session.execute(select(Balance).where(Balance.user_id == user_id)
-    )
+    bal_result = await session.execute(select(Balance).where(Balance.user_id == user_id))
     return pos_result.scalars().all(), bal_result.scalar_one_or_none()
 
 async def update_user_balance(user_id: int, deposit: int, session: Session):

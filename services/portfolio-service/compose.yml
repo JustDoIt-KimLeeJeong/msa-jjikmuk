@@ -61,7 +61,14 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-0000}
       POSTGRES_DB: ${POSTGRES_DB:-portfolio}
-    
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "max_replication_slots=10"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
@@ -136,6 +143,8 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
     environment:
       BOOTSTRAP_SERVERS: kafka:9092
       GROUP_ID: 1
@@ -149,3 +158,57 @@ services:
       VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
     ports:
       - "8083:8083"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Debezium 커넥터 자동 등록
+  # Debezium 커넥터 자동 등록
+  debezium-setup:
+    image: alpine:latest
+    container_name: debezium-setup
+    depends_on:
+      kafka-connect:
+        condition: service_healthy
+    volumes:
+      - ./debezium_connector.json:/debezium_connector.json:ro
+    command: >
+      sh -c '
+        apk add --no-cache curl jq
+        
+        echo "⏳ Waiting for Kafka Connect to be fully ready..."
+        sleep 10
+        
+        echo "📝 Checking existing connectors..."
+        EXISTING=$$(curl -s http://kafka-connect:8083/connectors)
+        echo "$$EXISTING"
+        
+        CONNECTOR_NAME=$$(jq -r ".name" /debezium_connector.json)
+        
+        if echo "$$EXISTING" | grep -q "$$CONNECTOR_NAME"; then
+          echo "✅ Connector $$CONNECTOR_NAME already exists!"
+          exit 0
+        fi
+        
+        echo "🔌 Registering Debezium connector..."
+        HTTP_CODE=$$(curl -s -o /tmp/response.json -w "%{http_code}" \
+          -X POST http://kafka-connect:8083/connectors \
+          -H "Content-Type: application/json" \
+          -d @/debezium_connector.json)
+        
+        echo "Response code: $$HTTP_CODE"
+        cat /tmp/response.json
+        echo ""
+        
+        if [ "$$HTTP_CODE" = "201" ] || [ "$$HTTP_CODE" = "409" ]; then
+          echo "✅ Connector registered successfully!"
+          exit 0
+        else
+          echo "❌ Failed to register connector"
+          exit 1
+        fi
+      '
+    restart: "no"

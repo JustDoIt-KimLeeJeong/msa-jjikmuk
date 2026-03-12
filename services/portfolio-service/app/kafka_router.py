@@ -13,12 +13,12 @@ class EventDTOHandler :
 
 
 route_list = [
-    EventDTOHandler("OrderPlaced", DTO.OrderPlace,Handler.order_placed), 
-    EventDTOHandler("OrderCancelled",DTO.OutboundEventEnvelop, Handler.order_cancelled), 
-    EventDTOHandler("TradeExecuted", DTO.TradeExecuted, Handler.trade_executed), 
-    EventDTOHandler("Test", DTO.OutboundEventEnvelop, Handler.test),
-    # router.add_router("OrderExpired", DTO.OutboundEventEnvelop, Handler.) # 아직 미작성된 코드
+    EventDTOHandler("OrderPlaced", DTO.OrderPlace, Handler.order_placed), 
+    EventDTOHandler("OrderCancelled", DTO.OutboundEventEnvelop, Handler.order_cancelled), 
+    EventDTOHandler("OrderExpired", DTO.OutboundEventEnvelop, Handler.order_expired),
+    EventDTOHandler("TradeExecuted", DTO.TradeExecuted, Handler.trade_executed)
 ]
+
 
 def build_event_router() -> EventRouter : 
     router = EventRouter()
@@ -28,5 +28,5 @@ def build_event_router() -> EventRouter :
 
     return router
 
-def subscribed_event() -> list[str]:  
-    return [i.event for i in route_list]
+# def subscribed_event() -> list[str]:  
+#     return [i.event for i in route_list]
